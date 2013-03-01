@@ -1,0 +1,57 @@
+/* jQuery mmGrid stylesheet
+ *
+ * This file contains styles that are used to display the tree table. Each tree
+ * table is assigned the +mmGrid+ class.
+ * ========================================================================= */
+
+/* jquery.mmGrid.collapsible
+ * ------------------------------------------------------------------------- */
+.mmGrid tr td .expander {
+  cursor: pointer;
+  padding: 0;
+  zoom: 1; /* IE7 Hack */
+}
+
+.mmGrid .mmg-bodyWrapper .mmg-body td {
+  position: relative;
+  overflow: hidden;
+}
+
+.mmGrid tr td a.expander {
+  background-position: left center;
+  background-repeat: no-repeat;
+  color: #000;
+  text-decoration: none;
+  position: absolute;
+  left:4px;
+  top:6px;
+  width:16px;
+  height:16px;
+}
+
+.mmGrid tr.collapsed td a.expander {
+  background-image: url(img/plus.gif);
+}
+
+.mmGrid tr.expanded td a.expander {
+  background-image: url(img/minus.gif);
+}
+
+/* jquery.mmGrid.sortable
+ * ------------------------------------------------------------------------- */
+.mmGrid tr.selected, .mmGrid tr.accept {
+  background-color: #3875d7;
+}
+
+.mmGrid tr.selected a.expander, .mmGrid tr.accept a.expander {
+  color: #fff;
+}
+
+.mmGrid .ui-draggable-dragging {
+  color: #000;
+  z-index: 1;
+}
+
+/* Layout helper taken from jQuery UI. This way I don't have to require the
+ * full jQuery UI CSS to be loaded. */
+.ui-helper-hidden { display: none; }

@@ -16,6 +16,8 @@
             this._fitColWidth();
         }
 
+        this._init_plugins();
+
         if(options.autoLoad){
             if(options.url){
                 this.load();
@@ -79,6 +81,7 @@
 
             //cached object
             var $mmGrid = $(mmGrid.join(''));
+            this.$element = $el;    //保留原始元素
             this.$mmGrid = $mmGrid;
             this.$style = $mmGrid.find('style');
             this.$headWrapper = $mmGrid.find('.mmg-headWrapper');
@@ -398,6 +401,14 @@
             }
         }
 
+        //用来保存插件的初始化函数
+        , _plugins_init_functions: []
+        //执行插件初始化函数
+        , _init_plugins: function(){
+            for(var i=0; i < this._plugins_init_functions.length; i++){
+                this._plugins_init_functions[i].call(this);
+            }
+        }
         , _rowHtml: function(item, items, rowIndex){
             var opts = this.opts;
 
@@ -970,6 +981,15 @@
     };
 
     $.fn.mmGrid.Constructor = MMGrid;
+    
+    //添加插件支持
+    $.fn.mmGrid.addPlugin = function(plugin){
+        $.extend($.fn.mmGrid.defaults, plugin.defaults);
+        $.extend(MMGrid.prototype, plugin.methods);
+        if (plugin._init){
+            MMGrid.prototype._plugins_init_functions.push(plugin._init);
+        }
+    }
 
 
     // see: http://james.padolsey.com/javascript/sorting-elements-with-jquery/
