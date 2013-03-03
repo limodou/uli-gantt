@@ -16,8 +16,6 @@
             this._fitColWidth();
         }
 
-        this._init_plugins();
-
         if(options.autoLoad){
             if(options.url){
                 this.load();
@@ -25,7 +23,7 @@
                 this.load(options.items);
             }
         }
-
+        this._init_plugins();
     };
 
     //see: http://tanalin.com/en/articles/ie-version-js/
@@ -82,7 +80,6 @@
 
             //cached object
             var $mmGrid = $(mmGrid.join(''));
-            this.$element = $el;    //保留原始元素
             this.$mmGrid = $mmGrid;
             this.$style = $mmGrid.find('style');
             this.$headWrapper = $mmGrid.find('.mmg-headWrapper');
@@ -92,6 +89,10 @@
             this.$body = $el.removeAttr("style").addClass('mmg-body').empty()
                 .html('<tbody><td style="border: 0px;background: none;">&nbsp;</td></tbody>')
                 .appendTo(this.$bodyWrapper);
+                
+            this.$element = $el;    //保留原始元素
+            this.$count = 0;        //记录所有数据,一行一条
+            
 
             //放回原位置
             if(elIndex === 0 || $elParent.children().length == 0){
