@@ -7,13 +7,14 @@
         this._id = (((1 + Math.random()) * 0x10000) | 0).toString(16);
         this._loadCount = 0;
         this.opts = options;
-        this._initLayout($(element));
+        this.$el = $(element);
+        this._initLayout(this.$el);
         this._initHead();
         this._initOptions();
         this._initEvents();
         this._setColsWidth();
-        if(this.opts.fitColWidth){
-            this._fitColWidth();
+        if(this.opts.fullWidthRows){
+            this._fullWidthRows();
         }
 
         if(options.autoLoad){
@@ -86,13 +87,10 @@
             this.$head = $mmGrid.find('.mmg-head');
             this.$backboard = $mmGrid.find('.mmg-backboard');
             this.$bodyWrapper = $mmGrid.find('.mmg-bodyWrapper');
-            this.$body = $el.removeAttr("style").addClass('mmg-body').empty()
-                .html('<tbody><td style="border: 0px;background: none;">&nbsp;</td></tbody>')
-                .appendTo(this.$bodyWrapper);
-                
-            this.$element = $el;    //保留原始元素
             this.$count = 0;        //记录所有数据,一行一条
-            
+            this.$body = $el.removeAttr("style").addClass('mmg-body');
+            this._insertEmptyRow();
+            this.$body.appendTo(this.$bodyWrapper);
 
             //放回原位置
             if(elIndex === 0 || $elParent.children().length == 0){
@@ -236,6 +234,7 @@
                     }else{
                         $mmGrid.height(opts.height);
                     }
+                    $bodyWrapper.height($mmGrid.height() - $headWrapper.outerHeight(true));
 
                     //调整message
                     var $message = $mmGrid.find('.mmg-message');
@@ -284,7 +283,7 @@
             //向上按钮
             $mmGrid.find('a.mmg-btnBackboardUp').on('click', function(){
                 $backboard.slideUp().queue(function(next){
-                    if(!that.items().length){
+                    if(!that.rowsLength() || (that.rowsLength() === 1 && $body.find('tr.emptyRow').length === 1)){
                         that._showNoData();
                     }
                     next();
@@ -370,14 +369,21 @@
             var $body = this.$body;
             $body.on('click','td',function(){
                 var $this = $(this);
-                var action = opts.onSelected($.data($this.parent()[0], 'item'), $this.parent().index(), $this.index());
-                if(action === false){
-                    return;
-                }
+
+
+                that.$el.triggerHandler('rowSelected', [$.data($this.parent()[0], 'item'), $this.parent().index(), $this.index()]);
                 if(!$this.parent().hasClass('selected')){
                     that.select($this.parent().index());
+                }
+            });
+
+            $body.on('click','tr > td:nth-child(1) :checkbox',function(e){
+                e.stopPropagation();
+                var $this = $(this);
+                if(this.checked){
+                    that.select($this.parent().parent().parent().index());
                 }else{
-                    that.deselect($this.parent().index());
+                    that.deselect($this.parent().parent().parent().index());
                 }
             });
 
@@ -418,7 +424,7 @@
                 this._plugins_init_functions[i].call(this);
             }
         }
-        , _rowHtml: function(item, items, rowIndex){
+        , _rowHtml: function(item, rowIndex){
             var opts = this.opts;
 
             if($.isPlainObject(item)){
@@ -437,7 +443,7 @@
                     }
                     trHtml.push('">');
                     if(col.renderer){
-                        trHtml.push(col.renderer(item[col.name],item,items,rowIndex));
+                        trHtml.push(col.renderer(item[col.name],item,rowIndex));
                     }else{
                         trHtml.push(item[col.name]);
                     }
@@ -460,7 +466,7 @@
                 tbodyHtmls.push('<tbody>');
                 for(var rowIndex=0; rowIndex < items.length; rowIndex++){
                     var item = items[rowIndex];
-                    tbodyHtmls.push(this._rowHtml(item, items, rowIndex));
+                    tbodyHtmls.push(this._rowHtml(item, rowIndex));
                 }
                 tbodyHtmls.push('</tbody>');
                 $body.empty().html(tbodyHtmls.join(''));
@@ -469,16 +475,25 @@
                     $.data($trs.eq(rowIndex)[0],'item',items[rowIndex]);
                 }
             }else{
-                $body.empty().html('<tbody><td style="border: 0px;background: none;">&nbsp;</td></tbody>');
+                this._insertEmptyRow();
                 this._showNoData();
             }
             this._setStyle();
 
-            if(opts.fitColWidth && this._loadCount <= 1){
-                this._fitColWidth();
+            if(opts.fullWidthRows && this._loadCount <= 1){
+                this._fullWidthRows();
             }
 
             this._hideLoading();
+        }
+
+        , _insertEmptyRow: function(){
+            var $body = this.$body;
+            $body.empty().html('<tbody><tr class="emptyRow"><td  style="border: 0px;background: none;">&nbsp;</td></tr></tbody>');
+        }
+        , _removeEmptyRow: function(){
+            var $body = this.$body;
+            $body.find('tr.emptyRow').remove();
         }
 
         /* 生成列类 */
@@ -556,7 +571,7 @@
 
             $bodyWrapper.scrollTop(scrollTop);
         }
-        , _fitColWidth: function(){
+        , _fullWidthRows: function(){
             var opts = this.opts;
             var $bodyWrapper = this.$bodyWrapper;
             var $mmGrid = this.$mmGrid;
@@ -727,9 +742,8 @@
                 if(!opts.remoteSort){
                     that._refreshSortStatus();
                 }
-                if(opts.onSuccess){
-                    opts.onSuccess(data);
-                }
+
+                that.$el.triggerHandler('loadSuccess', data);
 
                 //分页控件加载
                 if(opts.paginator && opts.paginator.mmPaginator){
@@ -737,14 +751,16 @@
                     $pg.mmPaginator('load',data);
                 }
             }).fail(function(data){
-                if(opts.onError){
-                    opts.onError(data);
-                }
+                that.$el.triggerHandler('loadError', data);
             });
 
         }
 
-
+        , _loadNative: function(args){
+            this._populate(args);
+            this._refreshSortStatus();
+            this.$el.triggerHandler('loadSuccess', args);
+        }
         , load: function(args){
             var opts = this.opts;
             this._hideMessage();
@@ -753,13 +769,13 @@
 
             if($.isArray(args)){
                 //加载本地数据
-                this._populate(args);
-                this._refreshSortStatus();
-                if(opts.onSuccess){
-                    opts.onSuccess(args);
-                }
+                this._loadNative(args);
             }else if(opts.url){
                 this._loadAjax(args);
+            }else if(opts.items){
+                this._loadNative(opts.items);
+            }else{
+                this._loadNative([]);
             }
         }
             //选中
@@ -824,7 +840,7 @@
                 }
             }
         }
-        , selected: function(){
+        , selectedRows: function(){
             var $body = this.$body;
             var selected = [];
             $.each($body.find('tr.selected'), function(index ,item){
@@ -833,7 +849,7 @@
             return selected;
         }
 
-        , selectedIndex: function(){
+        , selectedRowsIndex: function(){
             var $body = this.$body;
             var $trs = this.$body.find('tr')
             var selected = [];
@@ -843,7 +859,7 @@
             return selected;
         }
 
-        , items: function(){
+        , rows: function(){
             var $body = this.$body;
             var items = [];
             $.each($body.find('tr'), function(){
@@ -852,7 +868,7 @@
             return items;
         }
 
-        , item: function(index){
+        , row: function(index){
             var $body = this.$body;
             if(index !== undefined && index >= 0){
                 var $tr = $body.find('tr').eq(index);
@@ -862,13 +878,22 @@
             }
         }
 
+        , rowsLength: function(){
+            var $body = this.$body;
+            var length = $body.find('tr').length;
+            if(length === 1 && $body.find('tr.emptyRow').length === 1){
+                return 0;
+            }
+            return length;
+        }
+
         //添加数据，第一个参数可以为数组
-        , add: function(item, index){
+        , addRow: function(item, index){
             var $tbody = this.$body.find('tbody');
 
             if($.isArray(item)){
                 for(var i=item.length-1; i >= 0; i--){
-                    this.add(item[i], index);
+                    this.addRow(item[i], index);
                 }
                 return ;
             }
@@ -877,15 +902,16 @@
                 return ;
             }
 
-            var items = this.items();
+            this._hideNoData();
+            this._removeEmptyRow();
 
             var $tr;
 
             if(index === undefined || index < 0){
-                $tr = $(this._rowHtml(item, items, items.length));
+                $tr = $(this._rowHtml(item, this.rowsLength()));
                 $tbody.append($tr);
             }else{
-                $tr = $(this._rowHtml(item, items, index));
+                $tr = $(this._rowHtml(item, index));
                 if(index === 0){
                     $tbody.prepend($tr);
                 }else{
@@ -896,66 +922,79 @@
                     }else{
                         $before.after($($tr));
                     }
-
                 }
             }
             $tr.data('item', item);
             this._setStyle();
+
+
+            this.$el.triggerHandler('rowInserted', [item, index]);
         }
         //更新行内容，两个参数都必填
-        , update: function(item, index){
+        , updateRow: function(item, index){
             var opts = this.opts;
             var $tbody = this.$body.find('tbody');
             if(!$.isPlainObject(item)){
                 return ;
             }
-
-            var items = this.items();
+            var oldItem = this.row(index);
 
             var $tr = $tbody.find('tr').eq(index);
             var checked = $tr.find('td:first :checkbox').is(':checked');
-            $tr.html(this._rowHtml(item, items, index).slice(4,-5));
+            $tr.html(this._rowHtml(item, index).slice(4,-5));
             if(opts.checkCol){
                 $tr.find('td:first :checkbox').prop('checked',checked);
             }
 
-
             $tr.data('item', item);
             this._setStyle();
+
+            this.$el.triggerHandler('rowUpdated', [oldItem, item, index]);
         }
 
         //删除行，参数可以为索引数组
-        , remove: function(index){
-            var $tbody = this.$body.find('tbody');
+        , removeRow: function(index){
+            var that = this;
+            var $tbody = that.$body.find('tbody');
 
             if($.isArray(index)){
                 for(var i=index.length-1; i >= 0; i--){
-                    this.remove(index[i]);
+                    that.removeRow(index[i]);
                 }
                 return ;
             }
 
             if(index === undefined){
-                $tbody.find('tr').remove();
+                var $trs = $tbody.find('tr');
+                for(var i=$trs.length-1; i >= 0; i--){
+                    that.removeRow(i);
+                }
             }else{
+                var item = that.row(index);
                 $tbody.find('tr').eq(index).remove();
+                this.$el.triggerHandler('rowRemoved', [item, index]);
             }
             this._setStyle();
+            if(this.rowsLength() === 0){
+                this._showNoData();
+                this._insertEmptyRow();
+            }
         }
     };
 
     $.fn.mmGrid = function(){
         if(arguments.length === 0 || typeof arguments[0] === 'object'){
-            var option = arguments[0];
-            return this.each(function(){
-                var $this = $(this)
-                    , data = $this.data('mmGrid')
-                    , options = $.extend(true, {}, $.fn.mmGrid.defaults, option);
-                if (!data) $this.data('mmGrid', new MMGrid(this, options))
-            });
+            var option = arguments[0]
+                , data = this.data('mmGrid')
+                , options = $.extend(true, {}, $.fn.mmGrid.defaults, option);
+            if (!data) {
+                data = new MMGrid(this[0], options);
+                this.data('mmGrid', data);
+            }
+            return $.extend(true, this, data);
         }
         if(typeof arguments[0] === 'string'){
-            var data = $(this).data('mmGrid');
+            var data = this.data('mmGrid');
             var fn =  data[arguments[0]];
             if(fn){
                 var args = Array.prototype.slice.call(arguments);
@@ -982,13 +1021,14 @@
         , noDataText: '没有数据'
         , multiSelect: false
         , checkCol: false
-        , fitColWidth: false
+        , fullWidthRows: false
         , nowrap: false
-        , onSuccess: function(data){}
-        , onError: function(data){}
-        , onSelected: function(item, rowIndex, colIndex){}
         , paginator : undefined //分页器
     };
+//  event : loadSuccess(e,data), loadError(e, data), rowSelected(item, rowIndex, colIndex)
+//          rowInserted(e,item, rowIndex), rowUpdated(e, oldItem, newItem, rowIndex), rowRemoved(e,item, rowIndex)
+//
+
 
     $.fn.mmGrid.Constructor = MMGrid;
     

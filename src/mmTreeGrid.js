@@ -124,7 +124,7 @@
                 
                 //无数据直接追加
                 if(this.count() == 0){
-                    e = this._trigger(this.$element, 'add', item);
+                    e = this._trigger(this.$body, 'add', item);
                     if(e.isDefaultPrevented()) return;
                     $tbody.append($tr);
                     this._trigger($tr, 'added', item);
@@ -134,7 +134,7 @@
                     if (item[this.opts.parentField]){
                         parent = this.findItem(item[this.opts.parentField]);
                         if (!parent){
-                            this._trigger(this.$element, {type:'error',
+                            this._trigger(this.$body, {type:'error',
                                 message:"can't find parent node"},
                                 item);
                             return ;
@@ -148,7 +148,7 @@
                     if(isChild){
                         if (!parent) parent = node;
                     }else{
-                        e = this._trigger(this.$element, 'add', item);
+                        e = this._trigger(this.$body, 'add', item);
                         if(e.isDefaultPrevented()) return;
                         
                         //没找到则直接插入
@@ -181,7 +181,7 @@
                 
                 //如果有父结点，则处理父结点的样式
                 if (parent){
-                    e = this._trigger(this.$element, 'add', item);
+                    e = this._trigger(this.$body, 'add', item);
                     if(e.isDefaultPrevented()) return;
                     
                     //插入到父结点的最后一个子结点后面
@@ -252,15 +252,15 @@
                     $body.empty().html('<tbody></tbody>');
                     this.add(items)
                 }else{
-                    $body.empty().html('<tbody><td style="border: 0px;background: none;">&nbsp;</td></tbody>');
+                    this._insertEmptyRow();
                     this._showNoData();
                 }
                 this._setStyle();
-            
-                if(opts.fitColWidth && this._loadCount <= 1){
-                    this._fitColWidth();
+                
+                if(opts.fullWidthRows && this._loadCount <= 1){
+                    this._fullWidthRows();
                 }
-            
+                
                 this._hideLoading();
             }
             
@@ -284,6 +284,14 @@
             , addChild: function(item, index, expand){
                 this._add(item, index, true, undefined, expand);
                 this._setStyle();
+            }
+            
+            /*
+                获得某个索引的行数据，索引可以是tr元素
+            */
+            , row: function(index){
+                var node = this._get_item(index);
+                if(node) return node.data('item');
             }
             
             /*
@@ -342,14 +350,6 @@
             }
             
             /*
-                取某行的数据，如果index是tr元素，则直接获得数据
-            */
-            , itemData: function(index){
-                var item = this._get_item(index);
-                return item.data('item');
-            }
-            
-            /*
                 发送事件
             */
             , _trigger: function(el, type, data){
@@ -379,7 +379,7 @@
                     return false;
                 }
                 
-                var data = this.itemData(index);
+                var data = this.row(index);
                 var e;
                 
                 //检查是否可以删除
@@ -405,7 +405,7 @@
                     this.$count --;
                     
                     //原结点被删除，使用控件元素
-                    this._trigger(this.$element, {type:'deleted'}, data);
+                    this._trigger(this.$body, {type:'deleted'}, data);
                     
                     return true;
                 }else{
@@ -485,7 +485,7 @@
                     return ;
                 
                 $self = this;
-                var data = this.itemData(node);
+                var data = this.row(node);
                 
                 if(node.hasClass('parent') && node.hasClass('expanded')){
                     if(first)
@@ -522,7 +522,7 @@
                     return ;
                     
                 var $self = this;
-                var data = this.itemData(node);
+                var data = this.row(node);
                 var children = this.getChildren(node);
                 
                 if (node.hasClass('collapsed')){
@@ -603,9 +603,11 @@
             */
             , _setParentValue: function (node, value){
                 var parent;
+                var data = this.row(node);
                 
                 if (value){
                     $(node).attr(this.opts.parentAttrName, value);
+                    data[this.opts.parentField] = value;
                     parent = this.findItem(value);
                     if (parent){
                         parent.data('loaded', true);
@@ -613,6 +615,7 @@
                 }
                 else{
                     $(node).removeAttr(this.opts.parentAttrName);
+                    data[this.opts.parentField] = '';                    
                 }
             }
             
@@ -754,20 +757,34 @@
             */
             , up: function (node) {
                 var n = this.getPrev(node);
+                var data = this.row(node);
+
                 if(n){
+                    e = this._trigger(node, 'up', data);
+                    if(e.isDefaultPrevented()) return;
+                
                     n.before(node);
+                    this._moveChildren(node);
+                    
+                    this._trigger(node, 'upped', data);
                 }
                 
-                this._moveChildren(node);
             }
             
             , down: function (node) {
                 var n = this.getNext(node, true);
+                var data = this.row(node);
+
                 if(n){
+                    e = this._trigger(node, 'down', data);
+                    if(e.isDefaultPrevented()) return;
+
                     node.before(n);
+                    this._moveChildren(n);
+                    
+                    this._trigger(node, 'downed', data);
                 }
                 
-                this._moveChildren(node);
             }
             /*
                 使当前结点向后缩近，变成上一结点的子结点
@@ -775,7 +792,7 @@
             , indent: function (node, value) {
                 var $self = this;
                 var prev;
-                var data = this.itemData(node);
+                var data = this.row(node);
                 
                 //取同级上一个结点
                 prev = this.getPrev(node);
@@ -801,7 +818,7 @@
                 var $self = this;
                 var parent;
                 var grandpar;
-                var data = this.itemData(node);
+                var data = this.row(node);
                 var next;
                 
                 parent = this.getParent(node);
@@ -844,7 +861,7 @@
                 var target = cell.find(this.opts.fieldTarget);
                 var a = cell.find('a.expander');
                 var padding = this.opts.indent*(this._level(node)+1);
-                var data = this.itemData(node);
+                var data = this.row(node);
                 var children = this.getChildren(node);
                 var parent = this.getParent(node);
                 
