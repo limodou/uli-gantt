@@ -865,7 +865,7 @@
                     if(expandable && (!node.hasClass('expanded'))){
                         node.removeClass('collapsed').addClass('expanded');
                     }
-                    if((!expandable) && (!node.hasClass('collapsed'))){
+                    if((expandable === false) && (!node.hasClass('collapsed')) && (children.length>0)){
                         node.removeClass('expanded').addClass('collapsed');
                     }
                     
