@@ -7,8 +7,7 @@
         this._id = (((1 + Math.random()) * 0x10000) | 0).toString(16);
         this._loadCount = 0;
         this.opts = options;
-        this.$el = $(element);
-        this._initLayout(this.$el);
+        this._initLayout($(element));
         this._initHead();
         this._initOptions();
         this._initEvents();
@@ -17,12 +16,23 @@
             this._fullWidthRows();
         }
 
+        //初始化插件
+        for(var i=0; i< this.opts.plugins.length; i++){
+            var plugin = this.opts.plugins[i];
+            plugin.init($.extend(element, this));
+        }
+
         if(options.autoLoad){
-            if(options.url){
-                this.load();
-            }else{
-                this.load(options.items);
-            }
+            var that = this;
+            this.opts = options;
+            setTimeout(function(){
+
+                if(options.url){
+                    that.load();
+                }else{
+                    that.load(options.items);
+                }
+            },0); //chrome style problem
         }
         this._init_plugins();
     };
@@ -47,7 +57,9 @@
     }();
 
     MMGrid.prototype = {
+
         _initLayout: function($el){
+            var opts = this.opts;
             var $elParent = $el.parent();
             var elIndex = $el.index();
 
@@ -99,7 +111,7 @@
                 $elParent.children().eq(elIndex-1).after(this.$mmGrid);
             }
 
-            var opts = this.opts;
+
             // fix in ie6
             if(browser.isIE6 && (!opts.width || opts.width === 'auto')){
                 $mmGrid.width('100%');
@@ -116,41 +128,182 @@
             }
 
             if(opts.checkCol){
-                var chkHtml = opts.multiSelect ? '<input type="checkbox" class="checkAll" >' : '<input type="checkbox" disabled="disabled" class="checkAll">';
-                opts.cols.unshift({title:chkHtml,width: 20, align: 'center' ,lockWidth: true, renderer:function(){
-                    return '<input type="checkbox" class="check">';
+                var chkHtml = opts.multiSelect ?  '<input type="checkbox" class="checkAll" >'
+                    : '<input type="checkbox" disabled="disabled" class="checkAll">';
+                opts.cols.unshift({title:chkHtml,width: 20, align: 'center' ,lockWidth: true, checkCol: true, renderer:function(){
+                    return '<input type="checkbox" class="mmg-check">';
                 }});
             }
+
+            if(opts.indexCol){
+                opts.cols.unshift({title:'#',width: opts.indexColWidth, align: 'center' ,lockWidth: true, indexCol:true, renderer:function(val,item,rowIndex){
+                    return '<label class="mmg-index">' + (rowIndex+1) + '</label>';
+                }});
+            }
+
+        }
+
+        ,_expandCols: function(cols){
+            var newCols = [];
+            if(!cols){
+               return newCols;
+            }
+            for(var colIndex=0; colIndex<cols.length; colIndex++){
+               var col = cols[colIndex];
+               if(col.cols){
+                   newCols.push(col);
+                   newCols.push.apply(newCols,this._expandCols(col.cols));
+               }else{
+                   newCols.push(col);
+               }
+            }
+            return newCols;
+        }
+        ,_leafCols: function(){
+            var opts = this.opts;
+            var newCols = [];
+            var cols = this._expandCols(opts.cols);
+            for(var colIndex=0; colIndex<cols.length; colIndex++){
+                var col = cols[colIndex];
+                if(!col.cols){
+                    newCols.push(col);
+                }
+            }
+            return newCols;
+        }
+
+        ,_expandThs: function(){
+            return this.$head.find('th').sort(function(a, b){
+               return parseInt($(a).data('colindex')) - parseInt($(b).data('colindex'));
+            });
+        }
+
+        ,_leafThs: function(){
+            return this.$head.find('th').filter(function(){
+                return !$.data(this,'col').cols;
+            }).sort(function(a, b){
+                return parseInt($(a).data('colindex')) - parseInt($(b).data('colindex'));
+            });
+        }
+
+
+        ,_colsWithTitleDeep: function(cols,deep){
+            var newCols = [];
+            if(!cols){
+                return newCols;
+            }
+            for(var colIndex=0; colIndex<cols.length; colIndex++){
+                var col = cols[colIndex];
+                if(deep === 1){
+                    newCols.push(col);
+                }else{
+                    newCols.push.apply(newCols, this._colsWithTitleDeep(col.cols, deep-1));
+                }
+            }
+            return newCols;
+        }
+
+        ,_titleDeep: function(cols){
+            var deep = 1;
+            for(var colIndex=0; colIndex<cols.length; colIndex++){
+                var col = cols[colIndex];
+                if(col.cols){
+                    var newDeep = 1 + this._titleDeep(col.cols);
+                    if(deep < newDeep){
+                        deep = newDeep;
+                    }
+                }
+            }
+            return deep;
+        }
+
+        , _titleHtml: function(col, rowspan){
+            var opts = this.opts;
+
+            var titleHtml = [];
+            if(!col.cols){
+                titleHtml.push('<th class="');
+                var colIndex =  $.inArray(col, this._expandCols(opts.cols));
+                titleHtml.push(this._genColClass(colIndex));
+                titleHtml.push(' " ');
+                titleHtml.push(' rowspan="');
+                titleHtml.push(rowspan);
+                titleHtml.push('" colspan="');
+                titleHtml.push(1);
+                titleHtml.push('" data-colIndex="');
+                titleHtml.push(colIndex);
+                titleHtml.push('" >');
+                titleHtml.push('<div class="mmg-titleWrapper" >');
+                titleHtml.push('<span class="mmg-title ');
+                if(col.sortable) titleHtml.push('mmg-canSort ');
+                titleHtml.push('">');
+                if(col.titleHtml){
+                    titleHtml.push(col.titleHtml);
+                }else{
+                    titleHtml.push(col.title);
+                }
+                titleHtml.push('</span><div class="mmg-sort"></div>');
+                if(!col.lockWidth) titleHtml.push('<div class="mmg-colResize"></div>');
+                titleHtml.push('</div></th>');
+            }else{
+                titleHtml.push('<th class="');
+                var colIndex =  $.inArray(col, this._expandCols(opts.cols));
+                titleHtml.push(this._genColClass(colIndex));
+                titleHtml.push(' mmg-groupCol" ');
+                titleHtml.push(' rowspan="');
+                titleHtml.push(rowspan-1);
+                titleHtml.push('" colspan="');
+                titleHtml.push(col.cols.length);
+                titleHtml.push('" data-colIndex="');
+                titleHtml.push(colIndex);
+                titleHtml.push('" >');
+                titleHtml.push('<div class="mmg-titleWrapper" >');
+                titleHtml.push('<span class="mmg-title ');
+                if(col.sortable) titleHtml.push('mmg-canSort ');
+                titleHtml.push('">');
+                if(col.titleHtml){
+                    titleHtml.push(col.titleHtml);
+                }else{
+                    titleHtml.push(col.title);
+                }
+                titleHtml.push('</span><div class="mmg-sort"></div>');
+                titleHtml.push('</div></th>');
+            }
+
+            return titleHtml.join("");
         }
 
         , _initHead: function(){
+            var that = this;
             var opts = this.opts;
             var $head = this.$head;
 
             if(opts.cols){
                 var theadHtmls = ['<thead>'];
 
-                for(var colIndex=0; colIndex< opts.cols.length; colIndex++){
-                    var col = opts.cols[colIndex];
-                    theadHtmls.push('<th class="');
-                    theadHtmls.push(this._genColClass(colIndex));
-                    theadHtmls.push(' nowrap">');
-                    theadHtmls.push('<div class="mmg-titleWrapper" >');
-                    theadHtmls.push('<span class="mmg-title ');
-                    if(col.sortable) theadHtmls.push('mmg-canSort ');
-                    theadHtmls.push('">');
-                    theadHtmls.push(col.title);
-                    theadHtmls.push('</span><div class="mmg-sort"></div>');
-                    if(!col.lockWidth) theadHtmls.push('<div class="mmg-colResize"></div>');
-                    theadHtmls.push('</div></th>');
+                //获取标题深度
+                var titleDeep = that._titleDeep(opts.cols);
+                for(var deep=1; deep<= titleDeep; deep++){
+                    var cols = that._colsWithTitleDeep(opts.cols, deep);
+                    theadHtmls.push('<tr>');
+                    for(var colIndex=0; colIndex< cols.length; colIndex++){
+                        var col = cols[colIndex];
+                        theadHtmls.push(this._titleHtml(col, titleDeep-deep+1));
+                    }
+                    theadHtmls.push('</tr>');
                 }
-
                 theadHtmls.push('</thead>');
                 $head.html(theadHtmls.join(''));
             }
 
-            $.each($head.find('th'),function(index){
-                $.data(this,'col-width',opts.cols[index].width);
+            var $ths = this._expandThs();
+            var expandCols = this._expandCols(opts.cols);
+            $.each($ths,function(index){
+                if(!expandCols[index].width){
+                    expandCols[index].width = 100;
+                }
+                $.data(this,'col-width',expandCols[index].width);
+                $.data(this,'col',expandCols[index]);
             });
 
             var $mmGrid = this.$mmGrid;
@@ -161,10 +314,9 @@
 
             //初始化排序状态
             if(opts.sortName){
-                var $ths = $head.find('th');
-                for(var colIndex=0; colIndex< opts.cols.length; colIndex++){
-                    var col = opts.cols[colIndex];
-                    if(col.name === opts.sortName){
+                for(var colIndex=0; colIndex< expandCols.length; colIndex++){
+                    var col = expandCols[colIndex];
+                    if(col.sortName === opts.sortName || col.name === opts.sortName){
                         var $th= $ths.eq(colIndex);
                         $.data($th.find('.mmg-title')[0],'sortStatus',opts.sortStatus);
                         $th.find('.mmg-sort').addClass('mmg-'+opts.sortStatus);
@@ -182,14 +334,15 @@
                 'top': $headWrapper.outerHeight(true)
             }).slideUp('fast');
 
-            if(opts.cols){
+            var cols = this._leafCols();
+            if(cols){
                 var bbHtml = [];
-                for(var colIndex=0; colIndex<opts.cols.length; colIndex++){
+                for(var colIndex=0; colIndex<cols.length; colIndex++){
                     bbHtml.push('<label ');
-                    if(opts.checkCol && colIndex===0){
+                    if(cols[colIndex].checkCol || cols[colIndex].indexCol){
                         bbHtml.push('style="display:none;" ');
                     }
-                    var col = opts.cols[colIndex];
+                    var col = cols[colIndex];
                     bbHtml.push('><input type="checkbox"  ');
                     if(!col.hidden) bbHtml.push('checked="checked"');
                     if(col.lockDisplay) bbHtml.push(' disabled="disabled"');
@@ -215,45 +368,15 @@
             var $bodyWrapper = this.$bodyWrapper;
             var $body = this.$body;
             var $backboard = this.$backboard;
+            var $ths = this._expandThs();
+            var expandCols = this._expandCols(opts.cols);
+            var leafCols = this._leafCols();
 
             //调整浏览器
             if(opts.width === 'auto' || opts.height === 'auto' || (typeof opts.width === 'string' && opts.width.indexOf('%') === opts.width.length-1) ||
                 typeof opts.height === 'string' && opts.height.indexOf('%') === opts.height.length-1){
                 $(window).on('resize', function(){
-                    // fix in ie6
-                    if(browser.isIE6 && (!opts.width || opts.width === 'auto')){
-                        $mmGrid.width('100%');
-                        $mmGrid.width($mmGrid.width() - ($mmGrid.outerWidth(true) - $mmGrid.width()));
-                    }else{
-                        $mmGrid.width(opts.width);
-                    }
-
-                    if(browser.isIE6 && (!opts.height || opts.height === 'auto')){
-                        $mmGrid.height('100%');
-                        $mmGrid.height($mmGrid.height() - ($mmGrid.outerHeight(true) - $mmGrid.height()));
-                    }else{
-                        $mmGrid.height(opts.height);
-                    }
-                    $bodyWrapper.height($mmGrid.height() - $headWrapper.outerHeight(true));
-
-                    //调整message
-                    var $message = $mmGrid.find('.mmg-message');
-                    if($message.is(':visible')){
-                        $message.css({
-                            'left': ($mmGrid.width() - $message.width()) / 2,
-                            'top': ($mmGrid.height() + $headWrapper.height() - $message.height()) / 2
-                        });
-                    }
-                    //调整loading
-                    var $mask = $mmGrid.find('.mmg-mask');
-                    if($mask.is(':visible')){
-                        $mask.width($mmGrid.width()).height($mmGrid.height());
-                        var $loadingWrapper = $mmGrid.find('.mmg-loading');
-                        $loadingWrapper.css({
-                            'left': ($mmGrid.width() - $loadingWrapper.width()) / 2,
-                            'top': ($mmGrid.height() - $loadingWrapper.height()) / 2
-                        })
-                    }
+                    that.resize();
                 });
             }
 
@@ -276,7 +399,7 @@
                 $btnBackboardDn.slideUp('fast');
             });
             $headWrapper.on('mouseenter',function(){
-                if($backboard.is(':hidden')){
+                if($backboard.is(':hidden') && opts.showBackboard){
                     $btnBackboardDn.slideDown('fast');
                 }
             });
@@ -293,21 +416,63 @@
             //隐藏列
             $backboard.on('click', ':checkbox', function(){
                 var index = $backboard.find('label').index($(this).parent());
-                if(this.checked){
-                    opts.cols[index].hidden = false;
-                    that._setColsWidth();
-                }else{
-                    opts.cols[index].hidden = true;
-                    that._setColsWidth();
+                //最后一个不隐藏
+                var last = 1;
+                if(opts.checkCol){
+                    last = last + 1;
                 }
+                if(opts.indexCol){
+                    last = last + 1;
+                }
+                if($backboard.find('label :checked').length < last){
+                    this.checked = true;
+                    return;
+                }
+
+                var col = leafCols[index];
+                if(this.checked){
+                    col.hidden = false;
+
+                }else{
+                    col.hidden = true;
+                }
+
+                var $ths = $head.find('th');
+                for(var colIndex=$ths.length-1; colIndex>=0; colIndex--){
+                    var $th = $ths.eq(colIndex);
+                    var iCol = $th.data('col');
+                    if(iCol.cols){
+                        var hidden = true;
+                        var colspan = 0;
+                        $.each(iCol.cols,function(index,item){
+                            if(!item.hidden){
+                                hidden = false;
+                                colspan++;
+                            }
+                        });
+                        $th.prop('colspan',colspan);
+                        iCol.hidden = hidden;
+                    }
+                }
+
+                that._setColsWidth();
+                $backboard.height($mmGrid.height() - $headWrapper.outerHeight(true));
+                $bodyWrapper.height($mmGrid.height() - $headWrapper.outerHeight(true));
+                $mmGrid.find('a.mmg-btnBackboardDn').css({
+                    'top': $headWrapper.outerHeight(true)
+                })
             });
+
+
 
             //排序事件
             $head.on('click', '.mmg-title', function(){
                 var $this = $(this);
-                var $titles =  $head.find('.mmg-title');
+                var $titles =  $ths.find('.mmg-title');
+
                 //当前列不允许排序
-                if(!opts.cols[$titles.index($this)].sortable){
+                var col =$this.parent().parent().data('col');
+                if(!col.sortable){
                     return;
                 }
                 //取得当前列下一个排序状态
@@ -316,7 +481,7 @@
                 $.each($titles, function(){
                     $.removeData(this,'sortStatus');
                 });
-                $head.find('.mmg-sort').removeClass('mmg-asc').removeClass('mmg-desc');
+                $ths.find('.mmg-sort').removeClass('mmg-asc').removeClass('mmg-desc');
                 //设置当前列排序状态
                 $.data(this, 'sortStatus', sortStatus);
                 $this.siblings('.mmg-sort').addClass('mmg-'+sortStatus);
@@ -324,7 +489,7 @@
                 if(opts.url && opts.remoteSort){
                     that.load()
                 }else{
-                    that._nativeSorter($titles.index($this), sortStatus);
+                    that._nativeSorter($.inArray(col, leafCols), sortStatus);
                     that._setStyle();
                 }
             }).on('mousedown', '.mmg-colResize', function(e){
@@ -371,13 +536,17 @@
                 var $this = $(this);
 
 
-                that.$el.triggerHandler('rowSelected', [$.data($this.parent()[0], 'item'), $this.parent().index(), $this.index()]);
+                var isSelect = that.$body.triggerHandler('rowSelected', [$.data($this.parent()[0], 'item'), $this.parent().index(), $this.index()]);
+
+                if(isSelect === false){
+                    return;
+                }
                 if(!$this.parent().hasClass('selected')){
                     that.select($this.parent().index());
                 }
             });
 
-            $body.on('click','tr > td:nth-child(1) :checkbox',function(e){
+            $body.on('click','tr > td .mmg-check',function(e){
                 e.stopPropagation();
                 var $this = $(this);
                 if(this.checked){
@@ -389,7 +558,7 @@
 
             //checkbox列
             if(opts.checkCol){
-                $head.find('th:first :checkbox').on('click', function(){
+                $head.find('th .checkAll').on('click', function(){
                     if(this.checked){
                         that.select('all');
                     }else{
@@ -407,13 +576,7 @@
                 });
             };
 
-            //注册分页事件
-            if(opts.paginator && opts.paginator.mmPaginator){
-                var $pg = opts.paginator;
-                $pg.mmPaginator('addSubmitListener', function(){
-                    that._loadAjax();  //只有远程分页
-                })
-            }
+
         }
 
         //用来保存插件的初始化函数
@@ -426,14 +589,18 @@
         }
         , _rowHtml: function(item, rowIndex){
             var opts = this.opts;
+            var expandCols = this._expandCols(opts.cols);
+            var leafCols = this._leafCols();
+
 
             if($.isPlainObject(item)){
                 var trHtml = [];
                 trHtml.push('<tr>');
-                for(var colIndex=0; colIndex < opts.cols.length; colIndex++){
-                    var col = opts.cols[colIndex];
+                for(var colIndex=0; colIndex < leafCols.length; colIndex++){
+                    var col = leafCols[colIndex];
                     trHtml.push('<td class="');
-                    trHtml.push(this._genColClass(colIndex));
+                    var index =  $.inArray(col, expandCols);
+                    trHtml.push(this._genColClass(index));
                     if(opts.nowrap){
                         trHtml.push(' nowrap');
                     }
@@ -503,8 +670,9 @@
 
         , _setStyle: function(){
             var $head = this.$head;
-            var $ths = $head.find('th');
+            var $ths = this._expandThs();
             var $body = this.$body;
+            var leafCol = this._leafCols();
 
             //head
             $ths.eq(0).addClass('first');
@@ -515,9 +683,11 @@
 
             $body.find('tr:odd').addClass('even');
 
-            var sortIndex = $head.find('.mmg-title').index($head.find('.mmg-title').filter(function(){
+
+
+            var sortIndex = $.inArray($head.find('.mmg-title').filter(function(){
                 return $.data(this,'sortStatus') === 'asc' || $(this).data('sortStatus') === 'desc';
-            }));
+            }).parent().parent().data('col'), leafCol);
 
             $body.find('tr > td:nth-child('+(sortIndex+1)+')').addClass('colSelected')
                 .filter(':odd').addClass('colSelectedEven');
@@ -527,9 +697,11 @@
             var opts = this.opts;
             var $style = this.$style;
             var $head = this.$head;
-            var $ths = $head.find('th');
+
             var $bodyWrapper = this.$bodyWrapper;
             var $body = this.$body;
+            var $ths = this._expandThs();
+            var expandCols = this._expandCols(opts.cols);
 
             var scrollTop = $bodyWrapper.scrollTop();
             var scrollLeft = $head.position().left;
@@ -543,10 +715,12 @@
                 var width = $.data($th[0],'col-width');
                 styleText.push('width: '+ width +'px;');
                 styleText.push('max-width: '+ width +'px;');
-                if(opts.cols[colIndex].align){
-                    styleText.push('text-align: '+opts.cols[colIndex].align+';');
+
+                var col = expandCols[colIndex];
+                if(col.align){
+                    styleText.push('text-align: '+col.align+';');
                 }
-                if(opts.cols[colIndex].hidden){
+                if(col.hidden){
                     styleText.push('display: none; ');
                 }
                 styleText.push(' }');
@@ -588,9 +762,10 @@
             }
 
             var thsArr = [];
-            var $ths = $head.find('th');
-            for(var i=0; i< opts.cols.length; i++){
-                var col = opts.cols[i];
+            var $ths = this._leafThs();
+            var leafCol = this._leafCols();
+            for(var i=0; i< leafCol.length; i++){
+                var col = leafCol[i];
                 var $th = $ths.eq(i);
                 if(!col.lockWidth && $th.is(':visible')){
                     thsArr.push($th);
@@ -654,7 +829,9 @@
         }
 
         , _nativeSorter: function(colIndex, sortStatus){
-            var col = this.opts.cols[colIndex];
+            var leafCols = this._leafCols();
+            var col = leafCols[colIndex];
+
             this.$body.find('tr > td:nth-child('+(colIndex+1)+')')
                 .sortElements(function(a, b){
                     var av = $.text($(a));
@@ -708,7 +885,9 @@
                 for(var colIndex=0; colIndex<$titles.length; colIndex++){
                     var status = $.data($titles[colIndex], 'sortStatus');
                     if(status){
-                        sortName = opts.cols[colIndex].name;
+                        var col = $titles.eq(colIndex).parent().parent().data('col');
+                        sortName = col.sortName ?
+                            col.sortName : col.name;
                         sortStatus = status;
                     }
                 }
@@ -717,11 +896,10 @@
                 }
             }
 
-            //分页参数合并
-            if(opts.paginator && opts.paginator.mmPaginator){
-                var $pg = opts.paginator;
-                var pgParams = $pg.mmPaginator('params');
-                $.extend(params, pgParams);
+            //插件参数合并
+            for(var i=0; i< this.opts.plugins.length; i++){
+                var plugin = this.opts.plugins[i];
+                $.extend(params, plugin.params());
             }
 
             //合并load的参数
@@ -743,15 +921,10 @@
                     that._refreshSortStatus();
                 }
 
-                that.$el.triggerHandler('loadSuccess', data);
+                that.$body.triggerHandler('loadSuccess', data);
 
-                //分页控件加载
-                if(opts.paginator && opts.paginator.mmPaginator){
-                    var $pg = opts.paginator;
-                    $pg.mmPaginator('load',data);
-                }
             }).fail(function(data){
-                that.$el.triggerHandler('loadError', data);
+                that.$body.triggerHandler('loadError', data);
             });
 
         }
@@ -759,7 +932,7 @@
         , _loadNative: function(args){
             this._populate(args);
             this._refreshSortStatus();
-            this.$el.triggerHandler('loadSuccess', args);
+            this.$body.triggerHandler('loadSuccess', args);
         }
         , load: function(args){
             var opts = this.opts;
@@ -778,23 +951,70 @@
                 this._loadNative([]);
             }
         }
+
+        //重设尺寸
+        , resize: function(){
+            var opts = this.opts;
+            var $mmGrid = this.$mmGrid;
+            var $headWrapper = this.$headWrapper;
+            var $bodyWrapper = this.$bodyWrapper;
+
+            // fix in ie6
+            if(browser.isIE6 && (!opts.width || opts.width === 'auto')){
+                $mmGrid.width('100%');
+                $mmGrid.width($mmGrid.width() - ($mmGrid.outerWidth(true) - $mmGrid.width()));
+            }else{
+                $mmGrid.width(opts.width);
+            }
+
+            if(browser.isIE6 && (!opts.height || opts.height === 'auto')){
+                $mmGrid.height('100%');
+                $mmGrid.height($mmGrid.height() - ($mmGrid.outerHeight(true) - $mmGrid.height()));
+            }else{
+                $mmGrid.height(opts.height);
+            }
+            $bodyWrapper.height($mmGrid.height() - $headWrapper.outerHeight(true));
+
+            //调整message
+            var $message = $mmGrid.find('.mmg-message');
+            if($message.is(':visible')){
+                $message.css({
+                    'left': ($mmGrid.width() - $message.width()) / 2,
+                    'top': ($mmGrid.height() + $headWrapper.height() - $message.height()) / 2
+                });
+            }
+            //调整loading
+            var $mask = $mmGrid.find('.mmg-mask');
+            if($mask.is(':visible')){
+                $mask.width($mmGrid.width()).height($mmGrid.height());
+                var $loadingWrapper = $mmGrid.find('.mmg-loading');
+                $loadingWrapper.css({
+                    'left': ($mmGrid.width() - $loadingWrapper.width()) / 2,
+                    'top': ($mmGrid.height() - $loadingWrapper.height()) / 2
+                })
+            }
+
+            $bodyWrapper.trigger('scroll');
+        }
+
             //选中
         , select: function(args){
             var opts = this.opts;
             var $body = this.$body;
+            var $head = this.$head;
 
             if(typeof args === 'number'){
                 var $tr = $body.find('tr').eq(args);
                 if(!opts.multiSelect){
                     $body.find('tr.selected').removeClass('selected');
                     if(opts.checkCol){
-                        $body.find('tr > td:nth-child(1)').find(':checkbox').prop('checked','');
+                        $body.find('tr > td').find('.mmg-check').prop('checked','');
                     }
                 }
                 if(!$tr.hasClass('selected')){
                     $tr.addClass('selected');
                     if(opts.checkCol){
-                        $tr.find('td:first :checkbox').prop('checked','checked');
+                        $tr.find('td .mmg-check').prop('checked','checked');
                     }
                 }
             }else if(typeof args === 'function'){
@@ -804,7 +1024,7 @@
                         if(!$this.hasClass('selected')){
                             $this.addClass('selected');
                             if(opts.checkCol){
-                                $this.find('td:first :checkbox').prop('checked','checked');
+                                $this.find('td .mmg-check').prop('checked','checked');
                             }
                         }
                     }
@@ -812,33 +1032,50 @@
             }else if(args === undefined || (typeof args === 'string' && args === 'all')){
                 $body.find('tr.selected').removeClass('selected');
                 $body.find('tr').addClass('selected');
-                $body.find('tr > td:nth-child(1)').find(':checkbox').prop('checked','checked');
+                $body.find('tr > td').find('.mmg-check').prop('checked','checked');
+            }else{
+                return;
             }
+
+            if(opts.checkCol){
+                var $checks = $body.find('tr > td').find('.mmg-check');
+                if($checks.length === $checks.filter(':checked').length){
+                    $head.find('th .checkAll').prop('checked','checked');
+                }
+            }
+
+
         }
             //取消选中
         , deselect: function(args){
             var opts = this.opts;
             var $body = this.$body;
+            var $head = this.$head;
             if(typeof args === 'number'){
                 $body.find('tr').eq(args).removeClass('selected');
                 if(opts.checkCol){
-                    $body.find('tr').eq(args).find('td:first :checkbox').prop('checked','');
+                    $body.find('tr').eq(args).find('td .mmg-check').prop('checked','');
                 }
             }else if(typeof args === 'function'){
                 $.each($body.find('tr'), function(index){
                     if(args($.data(this, 'item'), index)){
                         $(this).removeClass('selected');
                         if(opts.checkCol){
-                            $(this).find('td:first :checkbox').prop('checked','');
+                            $(this).find('td .mmg-check').prop('checked','');
                         }
                     }
                 });
             }else if(args === undefined || (typeof args === 'string' && args === 'all')){
                 $body.find('tr.selected').removeClass('selected');
                 if(opts.checkCol){
-                    $body.find('tr > td:nth-child(1)').find(':checkbox').prop('checked','');
+                    $body.find('tr > td').find('.mmg-check').prop('checked','');
                 }
+            }else{
+                return;
             }
+
+            $head.find('th .checkAll').prop('checked','');
+
         }
         , selectedRows: function(){
             var $body = this.$body;
@@ -928,7 +1165,7 @@
             this._setStyle();
 
 
-            this.$el.triggerHandler('rowInserted', [item, index]);
+            this.$body.triggerHandler('rowInserted', [item, index]);
         }
         //更新行内容，两个参数都必填
         , updateRow: function(item, index){
@@ -949,7 +1186,7 @@
             $tr.data('item', item);
             this._setStyle();
 
-            this.$el.triggerHandler('rowUpdated', [oldItem, item, index]);
+            this.$body.triggerHandler('rowUpdated', [oldItem, item, index]);
         }
 
         //删除行，参数可以为索引数组
@@ -972,7 +1209,7 @@
             }else{
                 var item = that.row(index);
                 $tbody.find('tr').eq(index).remove();
-                this.$el.triggerHandler('rowRemoved', [item, index]);
+                this.$body.triggerHandler('rowRemoved', [item, index]);
             }
             this._setStyle();
             if(this.rowsLength() === 0){
@@ -988,7 +1225,7 @@
                 , data = this.data('mmGrid')
                 , options = $.extend(true, {}, $.fn.mmGrid.defaults, option);
             if (!data) {
-                data = new MMGrid(this[0], options);
+                data = new MMGrid(this, options);
                 this.data('mmGrid', data);
             }
             return $.extend(true, this, data);
@@ -1021,9 +1258,12 @@
         , noDataText: '没有数据'
         , multiSelect: false
         , checkCol: false
+        , indexCol: false
+        , indexColWidth: 30
         , fullWidthRows: false
         , nowrap: false
-        , paginator : undefined //分页器
+        , showBackboard: true
+        , plugins: [] //插件 插件必须实现 init($mmGrid)和params()方法，参考mmPaginator
     };
 //  event : loadSuccess(e,data), loadError(e, data), rowSelected(item, rowIndex, colIndex)
 //          rowInserted(e,item, rowIndex), rowUpdated(e, oldItem, newItem, rowIndex), rowRemoved(e,item, rowIndex)

@@ -11,7 +11,7 @@
     border-collapse: separate;
     border-spacing: 0;
     text-align: left;
-    table-layout: fixed;
+
 }
 
 .mmGrid input[type="radio"],
@@ -84,8 +84,6 @@
     -webkit-box-shadow: 0 0px 2px #bbb;
     box-shadow: 0 0px 2px #bbb;
     border-top: 2px solid #b00;
-
-    height: 2.1em;
     z-index: 1;
 
 }
@@ -102,6 +100,10 @@
     border-bottom: 1px solid #d2d2d2;
 }
 
+.mmGrid .mmg-headWrapper .mmg-head th.mmg-groupCol{
+    /* 分组列 */
+}
+
 .mmGrid .mmg-headWrapper .mmg-head th input{
     height: 2em;
 }
@@ -109,7 +111,6 @@
 .mmGrid .mmg-headWrapper .mmg-head th .mmg-titleWrapper{
     position: relative;
     height: 2em;
-    white-space: nowrap;
 }
 
 .mmGrid .mmg-headWrapper .mmg-head th .mmg-titleWrapper .mmg-colResize{
@@ -237,7 +238,7 @@
 
 /* 内容 */
 .mmGrid .mmg-bodyWrapper .mmg-body{
-
+    table-layout: fixed;
 }
 
 .mmGrid .mmg-bodyWrapper .mmg-body tr{
@@ -273,6 +274,10 @@
 
 .mmGrid .mmg-bodyWrapper .mmg-body tr.selected td{
     background: #fff5cc;
+}
+
+.mmGrid .mmg-bodyWrapper .mmg-body td .mmg-index{
+    color: #555;
 }
 
 .mmGrid .nowrap{

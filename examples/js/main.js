@@ -63,8 +63,8 @@ $(document).ready(function(){
         {title:'行情', name:'', width: 30, align: 'center', sortable: true, renderer: function(val,item,rowIndex){
             return '<div class="btnPrice"></div>';
         }},
-        { title:'股票代码', name:'SECUCODE' ,width:100, align:'center', sortable: true},
-        { title:'股票名称', name:'SECUABBR' ,width:100, align:'center', sortable: true},
+        { title:'股票代码', name:'SECUCODE' ,width:100, align:'center', sortable: true, sortName:'secu_code'},
+        { title:'股票名称', name:'SECUABBR' ,width:100, align:'center', sortable: true, sortName:'secu_abbr'},
         { title:'今收盘', name:'CLOSINGPRICE' ,width:60, align:'right',type:'number', sortable: true, renderer: fixed2},
         { title:'涨跌幅', name:'DAYCHANGERATE' ,width:60, align:'right',type:'number', sortable: true,renderer: highliht},
         { title:'涨跌额', name:'DAYCHANGE' ,width:60, align:'right',type:'number', sortable: true, renderer: highliht},
@@ -206,23 +206,11 @@ $(document).ready(function(){
     $('#table7-1').mmGrid({
         multiSelect: true,
         cols: cols,
-        items: items,
-        onSelected: function(item, rowIndex, colIndex){
-            if(colIndex === 0){
-                alert(JSON.stringify(item));
-                return false;//返回false取消执行选中或取消选中的操作
-            }
-        }
+        items: items
     });
     $('#table7-2').mmGrid({
         cols: cols,
-        items: items,
-        onSelected: function(item, rowIndex, colIndex){
-            if(colIndex === 0){
-                alert(JSON.stringify(item));
-                return false;//返回false取消执行选中或取消选中的操作
-            }
-        }
+        items: items
     });
 
     //选框列
@@ -230,32 +218,71 @@ $(document).ready(function(){
         multiSelect: true,
         checkCol: true,
         cols: cols,
-        items: items,
-        onSelected: function(item, rowIndex, colIndex){
-            if(colIndex === 1){
-                alert(JSON.stringify(item));
-                return false;//返回false取消执行选中或取消选中的操作
-            }
-        }
+        items: items
     });
     $('#table8-2').mmGrid({
         checkCol: true,
         cols: cols,
-        items: items,
-        onSelected: function(item, rowIndex, colIndex){
-            if(colIndex === 1){
-                alert(JSON.stringify(item));
-                return false;//返回false取消执行选中或取消选中的操作
-            }
-        }
+        items: items
+    });
+
+
+    //索引列
+    $('#table9-1').mmGrid({
+        indexCol: true,
+        indexColWidth: 25,
+        cols: cols,
+        items: items
+    });
+    $('#table9-2').mmGrid({
+        checkCol: true,
+        indexCol: true,
+        indexColWidth: 25,
+        cols: cols,
+        items: items
     });
 
     //分页
-    $('#table9-1').mmGrid({
+    $('#table10-1').mmGrid({
+        indexCol: true,
+        indexColWidth: 35,
         cols: cols,
         url: 'data/stockQuotePage.json',
         method: 'get',
         root: 'items',
-        paginator : $('#paginator9-1').mmPaginator()
+        plugins : [
+            $('#paginator10-1').mmPaginator()
+        ]
+    });
+
+    //表头分组
+    var groupCols = [
+        {title:'行情', name:'', width: 30, align: 'center', renderer: function(val,item,rowIndex){
+            return '<div class="btnPrice"></div>';
+        }},
+        {title:'股票', align: 'center', cols:[
+            { title:'股票代码', name:'SECUCODE' ,width:100, align:'center' ,sortable: true},
+            { title:'股票名称', name:'SECUABBR' ,width:100, align:'center' ,sortable: true}
+        ]},
+        { title:'今收盘', name:'CLOSINGPRICE' ,width:60, align:'right' ,sortable: true, renderer: fixed2},
+        { title:'涨跌幅', name:'DAYCHANGERATE' ,width:60, align:'right' ,sortable: true,renderer: highliht},
+        { title:'涨跌额', name:'DAYCHANGE' ,width:60, align:'right' ,sortable: true, renderer: highliht},
+        { title:'振幅', name:'AMPLITUDE' ,width:60, align:'right' ,sortable: true, renderer: fixed2percentage},
+        { title:'成交' ,align: 'center', cols: [
+            { title:'成交量(手)', name:'TURNOVERVOL' ,width:100, align:'right' ,sortable: true, renderer: function(val){
+                return (val / 100).toFixed(2);
+            }},
+            { title:'成交额(万)', name:'TURNOVERVAL' ,width:100, align:'right' ,sortable: true, renderer: function(val){
+                return (val / 10000).toFixed(2);
+            }}
+        ]},
+        { title:'昨收盘', name:'PREVCLOSINGPRICE' ,width:60, align:'right' ,sortable: true, renderer: fixed2},
+        { title:'今开盘', name:'OPENINGPRICE',width:60, align:'right' ,sortable: true, renderer: fixed2},
+        { title:'最高价', name:'HIGHESTPRICE' ,width:60, align:'right' ,sortable: true, renderer: fixed2},
+        { title:'最低价', name:'LOWESTPRICE' ,width:60, align:'right' ,sortable: true, renderer: fixed2}
+    ];
+    $('#table11-1').mmGrid({
+        cols: groupCols,
+        items: items
     });
 });
