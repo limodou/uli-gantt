@@ -24,42 +24,25 @@
             idField: 'id',  //用来定义数据中主键key
             keyAttrName: 'id',  //将主键key写到tr元素时使用的属性名称
             parentField: '_parent',  //用来在数据中标识父结点的字段名
-            readonly: true  //如果是只读，则不能进行add, remove, indent, unindent等编辑操作
+            bind: false,        //是否启用数据绑定功能，如果启动则在数据发生变化时会主动调用处理函数
+            bindHandler: null,  //数据绑定处理函数，如果bind为true，此值为空，则使用缺省处理函数
+            readonly: true,  //如果是只读，则不能进行add, remove, indent, unindent等编辑操作
+            orderingField: 'ordering',   //ordering用来保持每条的顺序号
+            showMessage: null,   //显示消息的函数,
+            cssRender:null,      //返回tr对应的css回调函数
+            
+            showIcon: false,    //树列显示图标
+            iconIndent: 16,     //图标的宽度
+            expandMethod: 'GET',//自动展开子结点ajax请求方式
+            expandParam: 'id',  //自动展开子结点ajax请求参数名
+            expandFilter: null, //自动展开数据预处理
+            expandURL: null     //自动展开子结点URL 
+            
+            
         },
         
         _init: function(){
-            //如果表格已经生成，则初始化树结构
-            
             var $self = this;
-            
-            /*
-            this.$body.find("tbody tr").each(function() {
-                // Skip initialized nodes.
-                if (!$(this).hasClass('initialized')) {
-                    var isRootNode = (!$self._getParentValue(this));
-            
-                  // To optimize performance of indentation, I retrieve the padding-left
-                  // value of the first root node. This way I only have to call +css+
-                  // once.
-//                    if (isRootNode && isNaN($self.opts.defaultPaddingLeft)) {
-//                        $self.opts.defaultPaddingLeft = parseInt($($(this).children("td")[$self._getColumnIndex($self.opts.treeColumn)]).css('padding-left'), 10);
-//                    }
-            
-                  // Set child nodes to initial state if we're in expandable mode.
-                  if(!isRootNode && $self.opts.expandable && $self.opts.initialState == "collapsed") {
-                    $(this).addClass('ui-helper-hidden');
-                  }
-            
-                  // If we're not in expandable mode, initialize all nodes.
-                  // If we're in expandable mode, only initialize root nodes.
-                  if(!$self.opts.expandable || isRootNode) {
-                        $self._init_tree($(this));
-                  }
-                }
-            });
-            
-            */
-            
         }
         
         , methods: {
@@ -82,11 +65,12 @@
                 index为指定的父结点，或者为序号或者为tr元素
                 如果index为0，则插入最前面
                 如果为undefined或null，则添加到最后
-                position为插入的位置：before为向前插入， after为向后插入
+                position为插入的位置：before为向前插入， after为向后插入,
+                last为在存在父结点时，插入到子结点的最后，如果无父结点则和after一样
                 为每个结点添加一个level的值，这样后续计划缩近时可以使用这个值
                 第一级为0
             */
-            , _add : function(item, index, isChild, position, expand){
+            , _add : function(item, index, isChild, position){
                 var $tbody = this.$body.find('tbody');
                 var nodes = [];
                 var pos;
@@ -97,8 +81,8 @@
                 if($.isArray(item)){
                     for(var i=0; i < item.length; i++){
                         if(i == 0) pos = position;
-                        else pos = 'after';
-                        var d = this._add(item[i], index, isChild, pos, expand);
+                        else pos = 'last';
+                        var d = this._add(item[i], index, isChild, pos);
                         nodes.push(d);
                     }
                     
@@ -108,8 +92,6 @@
                 if(!$.isPlainObject(item)){
                     return ;
                 }
-                
-//                var items = this.data();
                 
                 var $tr;
                 var length;
@@ -156,7 +138,7 @@
                             $tbody.append($tr);
                         }else{
                             //根据postion的指示插入结点
-                            if (position == 'after'){
+                            if (position == 'after' || position == 'last'){
                                 next = this.getNext(node);
                                 if (next){
                                     next.before($tr);
@@ -184,15 +166,18 @@
                     e = this._trigger(this.$body, 'add', item);
                     if(e.isDefaultPrevented()) return;
                     
-                    //插入到父结点的最后一个子结点后面
-                    var children = this.getChildren(parent);
-                    if(children.length > 0){
-                        next = this.getNext($(children[children.length-1]));
-                        if (next){
-                            next.before($tr);
+                    //如果position为last，则插入到子结点的最后
+                    if(position == 'last'){
+                        var children = this.getChildren(parent);
+                        if(children.length > 0){
+                            next = this.getNext($(children[children.length-1]));
+                            if (next){
+                                next.before($tr);
+                            }
+                            else
+                                $tbody.append($tr);
                         }
-                        else
-                            $tbody.append($tr);
+                        else parent.after($($tr));
                     }
                     else
                         parent.after($($tr));
@@ -210,7 +195,7 @@
                 
                 //处理子结点
                 if (item._children){
-                    nodes = this._add(item._children, $tr, true, undefined, expand);
+                    nodes = this._add(item._children, $tr, true, position);
                     if (nodes){
                         if($.isArray(nodes)){
                             for(var i=0; i<nodes.length; i++){
@@ -229,10 +214,8 @@
                 根据id值找到对应的元素对象
             */
             , findItem: function(id){
-                var $self = this;
                 var $body = this.$body;
-                var items = [];
-                var trs = $body.find('tbody tr['+$self.opts.idField+'="'+id+'"]');
+                var trs = $body.find('tbody tr['+this.opts.keyAttrName+'="'+id+'"]');
                 if (trs.length > 0)
                     return trs
                 return ;
@@ -245,12 +228,12 @@
             , _populate: function(items){
                 var opts = this.opts;
                 var $body = this.$body;
+                this._initing = true;   //初始化标志
             
                 this._hideNoData();
                 if(items && items.length !== 0 && opts.cols){
-            
                     $body.empty().html('<tbody></tbody>');
-                    this.add(items)
+                    this.add(items, undefined, 'last')
                 }else{
                     this._insertEmptyRow();
                     this._showNoData();
@@ -262,27 +245,25 @@
                 }
                 
                 this._hideLoading();
+                this._initing = false;
+                this._trigger(this.$body, 'inited');
             }
             
             //在某结点之后添加新结点
-            , add: function(item, index, expand){
-                var nodes = this._add(item, index, false, undefined, expand);
-                for(var i=0; i<nodes.length; i++){
-                    if(expand);
-                    
-                }
+            , add: function(item, index, position){
+                this._add(item, index, false, position);
                 this._setStyle();
             }
             
             //在某结点之前添加新结点
-            , insert: function(item, index, expand){
-                this._add(item, index, false, 'before', expand);
+            , insert: function(item, index){
+                this._add(item, index, false, 'before');
                 this._setStyle();
             }
             
             
-            , addChild: function(item, index, expand){
-                this._add(item, index, true, undefined, expand);
+            , addChild: function(item, index, position){
+                this._add(item, index, true, position);
                 this._setStyle();
             }
             
@@ -312,7 +293,7 @@
                 }
                 if(!index || index.length==0)
                     return ;
-                return index;
+                return $(index);
             }
 
             /*
@@ -322,98 +303,81 @@
                 cascade表示是否同时删除子结点,如果不同时删除子结点
                 则删除之后，其下的子结点将自动移到原结点的父结点上
                 
-                在每条记录删除时将可能触发以下几个事件：
-                
-                before
             */
             , remove: function(index, cascade){
                 var $tbody = this.$body.find('tbody');
                 var $self = this;
-                var success = true;
+                var nodes = [];
+                var node;
+                var para = [];
+                var item = this._get_item(index);
+                var data = this.row(index);
+                
+                //发出beforeDelete事件
+                var e = this._trigger(item, 'delete', data);
+                
+                //如果被中止，则取消删除
+                if (e.isDefaultPrevented()) return false;
                 
                 if(index == undefined){
-                    var nodes = $tbody.find('tr');
-                    if (nodes.length > 0){
-                        nodes.each(function(){
-                            success = $self._remove($(this), cascade);
-                            if (!success){
-                                success = false;
-                                return success;
-                            }
-                        });
-                    }
+                    nodes = $tbody.find('tr');
                 }else{
-                    success = this._remove(index, cascade);
+                    node = this._get_item(index);
+                    nodes.push(node);
+                    if(cascade){
+                        var children = this.getChildrenAll(node);
+                        Array.prototype.push.apply(nodes, children);
+                    }
                 }
-                this._setStyle();
-                return success;
+                
+                for(var i=0; i<nodes.length; i++){
+                    para.push(this.getKey(nodes[i]));
+                }
+                
+                function f(data, is_direct){
+                    if (!is_direct){
+                        for(var i=0; i<data.length; i++){
+                            var n = $self.findItem(data[i]);
+                            $self._remove(n);
+                        }
+                    }else{
+                        $self._remove(nodes);
+                    }
+                    $self._trigger($self.$body, {type:'deleted'}, data);
+                    $self._setStyle();
+                }
+                
+                this._bind_handler('delete', para, f);
             }
             
             /*
-                发送事件
+                发送事件，如果处理于初始化状态，则不发出事件
             */
             , _trigger: function(el, type, data){
                 var e = $.Event(type);
-                $(el).trigger(e, data);
+                if(!this._initing)
+                    $(el).trigger(e, data);
                 return e;
             }
             
             /*
                 删除某条记录，如果删除成功，则返回 true, 否则返回 false
             */
-            , _remove: function(index, cascade){
-                var success;
+            , _remove: function(index){
                 var $self = this;
                 
                 if($.isArray(index)){
                     for(var i=index.length-1; i >= 0; i--){
-                        success = this._remove(index[i], cascade);
-                        if (!success) return false;
+                        this._remove(index[i]);
                     }
-                    return true;
+                    return ;
                 }
                 
                 var item = this._get_item(index);
                 
-                if (!item){
-                    return false;
-                }
-                
-                var data = this.row(index);
-                var e;
-                
-                //检查是否可以删除
-                if (! (data._canDelete === false) ){
-                
-                    //发出beforeDelete事件
-                    e = this._trigger(item, 'delete', data);
-                    
-                    //如果被中止，则取消删除
-                    if (e.isDefaultPrevented()) return false;
-
-                    //如果可以级联删除，则处理子结点
-                    if (cascade){
-                        //如果是树结点，则先删除子结点
-                        var children = this.getChildren(item);
-                        children.each(function(){
-                            success = $self._remove($(this), cascade);
-                            if (!success) return false;
-                        });
-                    }
-                    
+                if (item){
                     item.remove();
                     this.$count --;
-                    
-                    //原结点被删除，使用控件元素
-                    this._trigger(this.$body, {type:'deleted'}, data);
-                    
-                    return true;
-                }else{
-                    //如果不能被删除，则发出不能删除事件
-                    this._trigger(item, {type:'error', 
-                        message:"Entry has _canDelete=false value, so it can't be deleted"},
-                        data);
-                    return false;
                 }
             }
             
@@ -422,10 +386,18 @@
             , _rowHtml: function(item){
             
                 var opts = this.opts;
-
+                var cls;
+                
                 if($.isPlainObject(item)){
                     var trHtml = [];
-                    trHtml.push('<tr '+ opts.keyAttrName + '="' + item[opts.idField] + '">');
+                    trHtml.push('<tr '+ opts.keyAttrName + '="' + item[opts.idField] + '"');
+                    if($.isFunction(opts.cssRender)){
+                        cls = opts.cssRender(item);
+                        if (cls[0] == 'add'){
+                            trHtml.push(' class="'+cls[1]+'"');
+                        }
+                    }
+                    trHtml.push('>');
                     for(var colIndex=0; colIndex < opts.cols.length; colIndex++){
                         var col = opts.cols[colIndex];
                         trHtml.push('<td class="');
@@ -440,7 +412,8 @@
                         trHtml.push('"')
                         //如果是tree结点列，则每行预留一定的空白
                         if(colIndex == this._getColumnIndex(opts.treeColumn)){
-                            trHtml.push(' style="padding-left:' + opts.indent + 'px"');
+                            var rowIndent = opts.showIcon ? opts.indent + opts.iconIndent+6 : opts.indent
+                            trHtml.push(' style="padding-left:' + rowIndent + 'px"');
                         }
                         trHtml.push('>');
                         if(col.renderer){
@@ -456,8 +429,100 @@
                 }
             }
             
+            /*
+                绑定处理，如果定义了处理函数，则调用函数，如果为字符串
+                则认为是URL，调用URL进行处理
+                如果是初始化过程，则直接返回不作处理
+            */
+            , _bind_handler: function(action, data, callback){
+                var $self = this;
+                var item;
+                if(this._initing) return;
+                if (this.opts.bind){
+                    if($.isFunction(this.opts.bindHandler)){
+                        this.opts.bindHandler(action, data, callback);
+                        return ;
+                    }else if(typeof(this.opts.bindHandler) == 'string'){
+                        data.action = action;
+                        $.ajax({
+                            url:this.opts.bindHandler,
+                            type:'POST',
+                            dataType:'json',
+                            data:{action:action, data:JSON.stringify(data)}
+                        })
+                        .done(function(r){
+                            if(r.success){
+                                if($.isFunction(callback))
+                                    callback(r.data);
+                                if(r.update_data){
+                                    for(var i=0; i<r.update_data.length; i++){
+                                        item = $self.findItem(r.update_data[i][$self.opts.idField]);
+                                        $self._update(r.update_data[i], item);
+                                    }
+                                }
+                                if($self.opts.showMessage && r.message){
+                                    $self.opts.showMessage(r.message);
+                                }
+                            }
+                            else{
+                                if(r.message){
+                                    if($self.opts.showMessage) $self.opts.showMessage(r.message, 'error');
+                                    else alert('Response failed: '+r.message);
+                                }
+                            }
+                        })
+                        .fail(function(jqXHR, textStatus){
+                            if($self.opts.showMessage) $self.opts.showMessage('Response failed: '+textStatus, 'error');
+                            else alert('Response failed: '+textStatus);
+                        });
+                        return ;
+                    }
+                }
+                 
+                if($.isFunction(callback))
+                    callback(undefined, 'direct');
+            }
+            
+            , saveOrdering: function (){
+                var para = [];
+                var nodes = this.$body.find('tbody tr');
+                var d;
+                var data;
+                var ordering = 0;
+                for(var i=0; i<nodes.length; i++){
+                    d = {};
+                    data = this.row($(nodes[i]));
+                    if (data[this.opts.orderingField] <= ordering){
+                        ordering ++;
+                        d[this.opts.idField] = data[this.opts.idField];
+                        d[this.opts.orderingField] = ordering;
+                        data[this.opts.orderingField] = ordering;
+                        para.push(d);
+                    }else{
+                        ordering = data[this.opts.orderingField];
+                    }
+                }
+                this._bind_handler('saveOrdering', para);
+            }
+            /*
+                将后台返回的数据合并到数据中，格式为 [{id: k1:, k2}]
+            */
+            , mergeData: function (data){
+                if (!data) return;
+                
+                for(var i=0; i<data.length; i++){
+                    item = this.findItem(data[i][this.opts.idField]);
+                    this._update(data[i], item);
+                }
+            }
+            
             , collapse: function (node){
                 return this._collapse($(node), true);
+            }
+            
+            , collapseById: function(nodeId){
+                var node = this.findItem(nodeId);
+                return this.collapse(node);
             }
             
             , collapseAll: function (){
@@ -492,6 +557,11 @@
                         node.removeClass("expanded").addClass("collapsed");
                     else
                         node.addClass("collapsed");
+                        
+                    if(this.opts.showIcon) {
+                        var icon = node.find('span.tree-icon');
+                        icon.removeClass('tree-folder-open').addClass('tree-folder');
+                    }
                 
                     e = this._trigger(node, 'collapse', data);
                     if(e.isDefaultPrevented()) return;
@@ -527,6 +597,10 @@
                 
                 if (node.hasClass('collapsed')){
                     node.removeClass("collapsed").addClass("expanded");
+                    if(this.opts.showIcon) {
+                        var icon = node.find('span.tree-icon');
+                        icon.removeClass('tree-folder').addClass('tree-folder-open');
+                    }
                 
                     e = this._trigger(node, 'expand', data);
                     if(e.isDefaultPrevented()) return;
@@ -556,8 +630,65 @@
               return node;
             }
             
-            , ajaxDo: function (node, action) {
-                console.log('ajaxdo', node, action);
+            , expandById: function(nodeId) {
+                var node = this.findItem(nodeId);
+                return this.expand(node);
+            }
+            
+            , ajaxDo: function (action, node) {
+                if(this.opts.expandURL) {
+                    var $self = this;
+                    var data = {};
+                    if (typeof this.opts.expandParam === 'string'){
+                        data[this.opts.expandParam] = node[this.opts.expandParam];
+                    }else if($.isPlainObject(this.opts.expandParam)){
+                        $.each(this.opts.expandParam, function(k, v){
+                            data[k] = node[v];
+                        });
+                    }
+                    
+                    $.ajax({
+                        url: this.opts.expandURL,
+                        type: this.opts.expandMethod || 'GET',
+                        dataType:'json',
+                        data:data
+                    })
+                    .done(function(r){
+                        if($.isArray(r)) {
+                            r = {success: true, data: r}
+                        }
+                        
+                        if(r.success){
+                            if(r.data){
+                                var parentId = node[$self.opts.idField];
+                                var parent = $self.findItem(parentId);
+                                if($.isFunction($self.opts.expandFilter)) {
+                                    var data = $self.opts.expandFilter(r.data, parentId);
+                                    $self.addChild(data, parent)
+                                } else {
+                                    $self.addChild(r.data, parent)
+                                }
+                            }
+                            if($self.opts.showMessage && r.message){
+                                $self.opts.showMessage(r.message);
+                            }
+                        }
+                        else{
+                            if(r.message){
+                                if($self.opts.showMessage) $self.opts.showMessage(r.message, 'error');
+                                else alert('Response failed: '+r.message);
+                            }
+                        }
+                    })
+                    .fail(function(jqXHR, textStatus){
+                        if($self.opts.showMessage) $self.opts.showMessage('Response failed: '+textStatus, 'error');
+                        else alert('Response failed: '+textStatus);
+                    });
+                    
+                } else {
+                    
+                }
+                //console.log('ajaxdo', node, action);
             }
             
             , selectedItem: function(){
@@ -648,12 +779,35 @@
                 的结点
             */
             , getChildren: function(node){
-            
                 if(node)
                     return $(node).siblings("tr[" + this.opts.parentAttrName + '="' + this.getKey(node) + '"]');
                 else{
                     return this.$body.find('tbody tr:not(['+this.opts.parentAttrName+'])');
                 }
+            }
+            /*
+                获得某个结点的所有子结点，包括子结点的子结点
+            */
+            , getChildrenAll: function(node, include_self){
+                var nodes = [];
+                
+                if (!node || node.length==0) return nodes;
+                
+                if (include_self) nodes.push(node);
+                
+                var cur;
+                var level = node.attr('level');
+                
+                //如果是同层，则取相同的parent和level的下一个结点
+                cur = $(node).next();
+                while (cur.length>0){
+                    if (cur.attr('level') <= level){
+                        break;
+                    }
+                    nodes.push(cur);
+                    cur = $(cur).next();
+                }
+                return nodes;
             }
 
             /*
@@ -683,31 +837,49 @@
             /*
                 获得当前结点的下一个同级或高级结点,如果不存在则返回undefined
                 如果samelevel=true，则只找同一个父结点的下一个同级结点
-                如果为false，则
+                如果为false，则返回其它树的第一个结点
             */
             , getNext: function(node, samelevel){
                 if (!node || node.length==0) return ;
                 
-                var parent = this.getParent(node);
-                var index;
-                var children;
+                var cur;
+                var level = node.attr('level');
                 
-                //如果有父结点，则检查在父结点中的位置，如果是最后一个，则
-                //向上找父结点的下一个结点，依此类推
-                //不存在父结点，则从顶层开始计算
-                children = this.getChildren(parent);
-                index = children.index(node);
-                if(index + 1 == children.length){
-                    if(!samelevel){
-                        if(parent)
-                            return this.getNext(parent);
+                //如果是同层，则取相同的parent和level的下一个结点
+                cur = $(node).next();
+                while (cur.length>0){
+                    if(level == cur.attr('level')){
+                        return cur;
+                    }else if (cur.attr('level') < level){
+                        if(!samelevel) return cur;
                     }
-                    return ;
+                    
+                    cur = $(cur).next();
                 }
-                else{
-                    return $(children[index+1]);
-                }
+            }
+            
+            /*
+                获得node同级的所有后续的结点
+            */
+            , getNextAll: function(node){
+                if (!node || node.length==0) return ;
                 
+                var cur;
+                var level = node.attr('level');
+                var nodes = [];
+                
+                //如果是同层，则取相同的parent和level的下一个结点
+                cur = $(node).next();
+                while (cur.length>0){
+                    if(level == cur.attr('level')){
+                        nodes.push(cur);
+                    }else if (cur.attr('level') < level){
+                        break;
+                    }
+                    
+                    cur = $(cur).next();
+                }
+                return nodes;
             }
             
             /*
@@ -716,73 +888,206 @@
             , getPrev: function (node){
                 if (!node || node.length==0) return ;
                 
-                var parent = this.getParent(node);
-                var index;
-                var children;
+                var cur;
+                var level = node.attr('level');
                 
-                //如果有父结点，则检查在父结点中的位置，如果是最后一个，则
-                //向上找父结点的下一个结点，依此类推
-                //不存在父结点，则从顶层开始计算
-                children = this.getChildren(parent);
-                index = children.index(node);
-                if(index > 0){
-                    return $(children[index-1]);
+                //如果是同层，则取相同的parent和level的下一个结点
+                cur = $(node).prev();
+                while (cur.length>0){
+                    if(level == cur.attr('level')){
+                        return cur;
+                    }else if (cur.attr('level') < level){
+                        return ;
+                    }
+                    
+                    cur = $(cur).prev();
                 }
-                else{
+            }
+            
+            , select: function(args){
+                var opts = this.opts;
+                var $body = this.$body;
+            
+                e = this._trigger($body, 'select');
+                if(e.isDefaultPrevented()) return;
+
+                if(typeof args === 'number'){
+                    var $tr = $body.find('tr').eq(args);
+                    if(!opts.multiSelect){
+                        $body.find('tr.selected').removeClass('selected');
+                        if(opts.checkCol){
+                            $body.find('tr > td:nth-child(1)').find(':checkbox').prop('checked','');
+                        }
+                    }
+                    if(!$tr.hasClass('selected')){
+                        $tr.addClass('selected');
+                        if(opts.checkCol){
+                            $tr.find('td:first :checkbox').prop('checked','checked');
+                        }
+                    }
+                }else if(typeof args === 'function'){
+                    $.each($body.find('tr'), function(index){
+                        if(args($.data(this, 'item'), index)){
+                            var $this = $(this);
+                            if(!$this.hasClass('selected')){
+                                $this.addClass('selected');
+                                if(opts.checkCol){
+                                    $this.find('td:first :checkbox').prop('checked','checked');
+                                }
+                            }
+                        }
+                    });
+                }else if(args === undefined || (typeof args === 'string' && args === 'all')){
+                    $body.find('tr.selected').removeClass('selected');
+                    $body.find('tr').addClass('selected');
+                    $body.find('tr > td:nth-child(1)').find(':checkbox').prop('checked','checked');
+                }
+                
+                this._trigger($body, 'selected');
+                
+            }
+                //取消选中
+            , deselect: function(args){
+                var opts = this.opts;
+                var $body = this.$body;
+                
+                e = this._trigger($body, 'deselect');
+                if(e.isDefaultPrevented()) return;
+                
+                if(typeof args === 'number'){
+                    $body.find('tr').eq(args).removeClass('selected');
+                    if(opts.checkCol){
+                        $body.find('tr').eq(args).find('td:first :checkbox').prop('checked','');
+                    }
+                }else if(typeof args === 'function'){
+                    $.each($body.find('tr'), function(index){
+                        if(args($.data(this, 'item'), index)){
+                            $(this).removeClass('selected');
+                            if(opts.checkCol){
+                                $(this).find('td:first :checkbox').prop('checked','');
+                            }
+                        }
+                    });
+                }else if(args === undefined || (typeof args === 'string' && args === 'all')){
+                    $body.find('tr.selected').removeClass('selected');
+                    if(opts.checkCol){
+                        $body.find('tr > td:nth-child(1)').find(':checkbox').prop('checked','');
+                    }
+                }
+                
+                this._trigger($body, 'deselected');
+                
+            }
+            
+//            , move: function (node, destination) {
+//                var $self = this;
+//                
+//                node.insertAfter(destination);
+//                this.getChildren(node).reverse().each(function() { 
+//                    $self.move($(this), node[0]); 
+//                });
+//            }
+            
+            /*
+                更新某条记录，只更新对应的字段
+            */
+            , _update: function(item, index){
+                var opts = this.opts;
+                var $tbody = this.$body.find('tbody');
+                if(!$.isPlainObject(item)){
                     return ;
                 }
                 
-            }
-            
-            , move: function (node, destination) {
-                var $self = this;
+                var $tr = this._get_item(index);
+                var checked = $tr.find('td:first :checkbox').is(':checked');
+                var text;
+                var cell;
+                var data = this.row($tr);
+                $.extend(data, item);
                 
-                node.insertAfter(destination);
-                this.getChildren(node).reverse().each(function() { 
-                    $self.move($(this), node[0]); 
+                $.each(data, function(key, value){
+                    for(var colIndex=0; colIndex < opts.cols.length; colIndex++){
+                        var col = opts.cols[colIndex];
+                        if(col.name == key){
+                            if(col.renderer){
+                                text = col.renderer(data[col.name], data);
+                            }else{
+                                text = value;
+                            }
+                            cell = $tr.find('td:eq('+colIndex+')').find(opts.fieldTarget);
+                            cell.html(text);
+                            break;
+                        }
+                    }
                 });
-            }
-            
-            , _moveChildren: function (node) {
-                var $self = this;
                 
-                $.each(this.getChildren(node).get().reverse(), function(index, el) { 
-                    node.after(el);
-                    $self._moveChildren($(el)); 
-                });
+                //更新样式
+                if($.isFunction(opts.cssRender)){
+                    cls = opts.cssRender(data);
+                    if (cls[0] == 'add'){
+                        if(!$tr.hasClass(cls[1])) $tr.addClass(cls[1]);
+                    }else if(cls[0] == 'remove') $tr.removeClass(cls[1]);
+                }
+                
+                if(opts.checkCol){
+                    $tr.find('td:first :checkbox').prop('checked',checked);
+                }
+            
+                this._setStyle();
+                return data;
+            }
+
+            , update: function(item, index){
+                var data = this._update(item, index);
+                var $tr = this._get_item(index);
+                if (data)
+                    this._trigger($tr, 'updated', data);
             }
             
             /*
                 向上移动
             */
-            , up: function (node) {
-                var n = this.getPrev(node);
+            , up: function (node, target) {
+                var n = target || this.getPrev(node);
                 var data = this.row(node);
+                var children = this.getChildrenAll(node, true);
+                var para = [];
+                var i;
+                var $self = this;
 
                 if(n){
                     e = this._trigger(node, 'up', data);
                     if(e.isDefaultPrevented()) return;
                 
-                    n.before(node);
-                    this._moveChildren(node);
+                    var d = {}
+                    d[this.opts.idField] = this.getKey(node);
+                    d[this.opts.orderingField] = this.row(n)[this.opts.orderingField];
+                    para.push(d);
                     
-                    this._trigger(node, 'upped', data);
+                    d = {}
+                    d[this.opts.idField] = this.getKey(n);
+                    d[this.opts.orderingField] = data[this.opts.orderingField];
+                    para.push(d);
+                    
+                    function f(){
+                        for(i=0; i<children.length; i++){
+                            n.before(children[i]);
+                        }
+                        $self.mergeData(para);
+                        
+                        $self._trigger(node, 'upped', data);
+                    }
+                    
+                    this._bind_handler('update', para, f);
                 }
                 
             }
             
             , down: function (node) {
                 var n = this.getNext(node, true);
-                var data = this.row(node);
 
                 if(n){
-                    e = this._trigger(node, 'down', data);
-                    if(e.isDefaultPrevented()) return;
-
-                    node.before(n);
-                    this._moveChildren(n);
-                    
-                    this._trigger(node, 'downed', data);
+                    this.up(n, node);
                 }
                 
             }
@@ -793,6 +1098,7 @@
                 var $self = this;
                 var prev;
                 var data = this.row(node);
+                var para = [];
                 
                 //取同级上一个结点
                 prev = this.getPrev(node);
@@ -801,13 +1107,51 @@
                     e = this._trigger(node, 'indent', data);
                     if(e.isDefaultPrevented()) return;
                     
-                    //将当前结点变为同级上一个结点的子结点
-                    this._setParentValue(node, this.getKey(prev));
-                    this._indent(node, 1, true);
-
-                    this.updateStyle(prev);
+                    //获得第一个结点的数据，及它的子结点的数据
+                    //第一个结点为新的level及父结点
+                    //子结点只需要新的level
+                    var d = {};
+                    d[this.opts.idField] = data[this.opts.idField];
+                    d['level'] = this._level(node)+1;
+                    d[this.opts.parentField] = this.getKey(prev);
                     
-                    $self._trigger(node, 'indented', data);
+                    //取父结点的最后一个子结点，得到它的ordering值
+                    var c = this.getChildren(prev);
+                    if(c.length>0){
+                        var ordering = this.row(c[c.length-1])[this.opts.orderingField];
+                        if (data[this.opts.orderingField] <= ordering){
+                            d[this.opts.orderingField] = ordering + 1;
+                            data[this.opts.orderingField] = d[this.opts.orderingField];
+                        }
+                    }
+                    //如果无子结点，ordering值可以不变
+                    para.push(d);
+                    
+                    var children = this.getChildrenAll(node);
+                    var x;
+                    for(var i=0; i<children.length; i++){
+                        x = this.row(children[i]);
+                        d = {};
+                        d[this.opts.idField] = x[this.opts.idField];
+                        d['level'] = this._level(children[i])+1;
+                        para.push(d);
+                    }
+                    
+                    function f(){
+                        //将当前结点变为同级上一个结点的子结点
+                        $self._setParentValue(node, $self.getKey(prev));
+                        $self._indent(node, 1);
+                        $self._indent(children, 1);
+                        
+                        $self.updateStyle(prev);
+                        
+                        $self._trigger(node, 'indented', data);
+                    }
+                    
+                    d = {data:para, node_id:data[this.opts.idField]}
+                    this._bind_handler('indent', d, f);
+                    
+
                 }
             }
             
@@ -820,6 +1164,8 @@
                 var grandpar;
                 var data = this.row(node);
                 var next;
+                var para = [];
+                var d, i, x, ordering;
                 
                 parent = this.getParent(node);
                 if (parent){
@@ -831,26 +1177,84 @@
 
                     grandpar = this.getParent(parent);
                     
+                    d = {};
+                    d[this.opts.idField] = data[this.opts.idField];
                     if(grandpar){
                         //将当前结点变为祖父结点的子结点
-                        this._setParentValue(node, grandpar.attr(this.opts.keyAttrName));
+                        d[this.opts.parentField] = this.getKey(grandpar);
                     }
                     else{
                         //已经到顶层，则清除父结点信息
-                        this._setParentValue(node);
+                        d[this.opts.parentField] = '';
                     }
+                    d['level'] = Math.max(0, this._level(node)-1);
+                    ordering = this.row(parent)[this.opts.orderingField];
+                    if (data[this.opts.orderingField] <= ordering){
+                        ordering ++;
+                        d[this.opts.orderingField] = ordering;
+                        data[this.opts.orderingField] = ordering;
+                    }
+                    para.push(d);
+                    
+                    //将parent下的同级结点的ordering按node的ordering向后移动
+                    var nexts = this.getNextAll(parent);
+                    for(i=0; i<nexts.length; i++){
+                        d = {};
+                        x = this.row(nexts[i]);
+                        d[this.opts.idField] = x[this.opts.idField];
+                        if (x[this.opts.orderingField] > ordering){
+                            ordering = x[this.opts.orderingField];
+                        }else{
+                            ordering ++;
+                            x[this.opts.orderingField] = ordering;
+                            d[this.opts.orderingField] = ordering;
+                            para.push(d);
+                        }
+                    }
+                    
+                    var children = this.getChildrenAll(node);
+                    for(i=0; i<children.length; i++){
+                        x = this.row(children[i]);
+                        d = {};
+                        d[this.opts.idField] = x[this.opts.idField];
+                        d['level'] = Math.max(0, this._level(children[i])-1);
+                        para.push(d);
+                    }
+                    if(next){
+                        d = {}
+                        d[this.opts.idField] = this.row(next)[this.opts.idField];
+                        d[this.opts.parentField] = this.getKey(node);
+                        para.push(d);
+                    }
+                    
+                    function f(){
+                        if(grandpar){
+                            //将当前结点变为祖父结点的子结点
+                            $self._setParentValue(node, grandpar.attr($self.opts.keyAttrName));
+                        }
+                        else{
+                            //已经到顶层，则清除父结点信息
+                            $self._setParentValue(node);
+                        }
 
-                    this._indent(node, -1, true);
-                    
-                    //下一个同级结点应该是当前结点的子结点
-                    if (next){
-                        this._setParentValue(next, node.attr(this.opts.keyAttrName));
+                        $self._indent(node, -1);
+                        $self._indent(children, -1);
+                        
+                        //下一个同级结点应该是当前结点的子结点
+                        if (next){
+                            $self._setParentValue(next, node.attr($self.opts.keyAttrName));
+                        }
+                        
+                        $self.updateStyle(parent);
+                        $self.updateStyle(node);
+                        
+                        $self._trigger(node, 'unindented', data);
                     }
                     
-                    this.updateStyle(parent);
-                    this.updateStyle(node);
+                    d = {data:para, node_id:data[this.opts.idField], 
+                        old_parent_id: this.getKey(parent)}
+                    this._bind_handler('unindent', d, f);
                     
-                    $self._trigger(node, 'unindented', data);
                 }
             }
             
@@ -889,11 +1293,33 @@
                     //如果当前结点的数据中有_isParent或子结点数>0，则添加parent信息
                     if(data._isParent || children.length > 0) {
                         node.addClass("parent");
-                        
-//                        node.removeClass('collapsed').removeClass('expanded').addClass(expand);
                     }else{
                         node.removeClass('parent');
                         cell.find('a.expander').remove();
+                    }
+                    if(this.opts.showIcon) {
+                        var icon = cell.find('span.tree-icon');
+                        if(icon.length==0) {
+                            icon = $('<span class="tree-icon"></span>');
+                            cell.prepend(icon);
+                        }
+                        target.css('paddingLeft', padding + this.opts.iconIndent+6);
+                        icon.css('left', padding-10 + this.opts.iconIndent);
+                        icon.removeClass('tree-file').removeClass('tree-folder').removeClass('tree-folder-open');
+                        if (node.hasClass('parent')) {
+                            if(node.hasClass('expanded')){
+                                icon.addClass('tree-folder-open');
+                            } else {
+                                icon.addClass('tree-folder');
+                            }
+                        } else {
+                            icon.addClass('tree-file')
+                        }
+                        if(data.iconCls) {
+                            icon.addClass(data.iconCls);
+                        }
+                    } else {
+                        target.css('paddingLeft', padding);
                     }
                     
                     if(node.hasClass('parent')){
@@ -919,37 +1345,61 @@
                         }
                         
                     }
-                    
-                    target.css('paddingLeft', padding);
+
                     a.css('left', padding-10);
                 }
+            }
+            /*
+                在指定的行对应的列显示一个小图标
+            */
+            , set_notation: function(index, column, cls, message){
+                var $tr = this._get_item(index);
+                var cell = $($tr.children("td")[this._getColumnIndex(column)]);
+                cell.removeClass('error').removeClass('warning').removeClass('success').remove('info');
+                cell.addClass(cls);
+                cell.attr('title', message);
+                cell.find('.mmg-notation').remove();
+                var item = $('<span class="mmg-notation '+cls+'" title="'+message+'"></span>');
+                cell.append(item);
+            }
+            
+            /*
+                在指定的行对应的列显示不同的背景
+            */
+            , set_cell_notation: function(index, column, cls, message){
+                var $tr = this._get_item(index);
+                var cell = $($tr.children("td")[this._getColumnIndex(column)]);
+                cell.removeClass('error').removeClass('warning').removeClass('success').remove('info');
+                cell.addClass(cls);
+                cell.attr('title', message);
             }
             
             /*
                 使当前结，包括子结点向后缩近
             */
-            , _indent: function (node, value, recursion){
+            , _indent: function (node, direction){
+                if (!node || node.length==0) return ;
+                if ($.isArray(node) && node.length>0){
+                    for(var i=0; i<node.length; i++){
+                        this._indent(node[i], direction);
+                    }
+                    return ;
+                }
+                node = $(node);
                 var $self = this;
                 var cell = $(node.children("td")[this._getColumnIndex(this.opts.treeColumn)]);
                 var target = cell.find(this.opts.fieldTarget);
                 var a = cell.find('a.expander');
                 
-                if(value>0)
+                if(direction>0){
                     $(node).attr('level', this._level(node)+1);
-                else
+                }
+                else{
                     $(node).attr('level', Math.max(0, this._level(node)-1));
-                
-                this.updateStyle(node, undefined, true);
-            
-                if (recursion){
-                    this.getChildren(node).each(function() {
-                        $self._indent($(this), value, true);
-                    });
                 }
                 
+                this.updateStyle(node, undefined, true);
             }
-            
-
             
         } // end of methods
         

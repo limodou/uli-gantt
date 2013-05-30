@@ -183,7 +183,7 @@
             }).slideUp('fast');
 
             if(opts.cols){
-                var bbHtml = ['<h1>显示列</h1>'];
+                var bbHtml = [];
                 for(var colIndex=0; colIndex<opts.cols.length; colIndex++){
                     bbHtml.push('<label ');
                     if(opts.checkCol && colIndex===0){
@@ -194,8 +194,8 @@
                     if(!col.hidden) bbHtml.push('checked="checked"');
                     if(col.lockDisplay) bbHtml.push(' disabled="disabled"');
                     bbHtml.push('/><span>');
-                    if(col.title){
-                        bbHtml.push(col.title);
+                    if(col.optionTitle || col.title){
+                        bbHtml.push(col.optionTitle || col.title);
                     }else{
                         bbHtml.push('未命名');
                     }

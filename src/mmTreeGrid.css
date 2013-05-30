@@ -55,3 +55,45 @@
 /* Layout helper taken from jQuery UI. This way I don't have to require the
  * full jQuery UI CSS to be loaded. */
 .ui-helper-hidden { display: none; }
+
+.mmGrid .mmg-bodyWrapper .mmg-body td.error {
+  background-color: #b94a48;
+}
+
+.mmGrid .mmg-bodyWrapper .mmg-body td.warning {
+  background-color: #f89406;
+}
+
+.mmGrid .mmg-bodyWrapper .mmg-body td.success {
+  background-color: #468847;
+}
+
+.mmGrid .mmg-bodyWrapper .mmg-body td.info {
+  background-color: #3a87ad;
+}
+
+.mmg-notation{
+    border: 4px solid;
+    border-color: transparent transparent transparent transparent;
+    width: 0px;
+    height: 0px;
+    position: absolute;
+    top: 0px;
+    right: 0px;
+}
+
+.mmg-notation.error{
+    border-color: #b94a48 #b94a48 transparent transparent;
+}
+
+.mmg-notation.warning{
+    border-color: #f89406 #f89406 transparent transparent;
+}
+
+.mmg-notation.success{
+    border-color: #468847 #468847 transparent transparent;
+}
+
+.mmg-notation.info{
+    border-color: #3a87ad #3a87ad transparent transparent;
+}
