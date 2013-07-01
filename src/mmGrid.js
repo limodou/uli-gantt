@@ -309,7 +309,10 @@
             var $mmGrid = this.$mmGrid;
             var $headWrapper = this.$headWrapper;
             var $bodyWrapper = this.$bodyWrapper;
-            $bodyWrapper.height($mmGrid.height() - $headWrapper.outerHeight(true));
+            if(opts.height !== 'auto'){
+                $bodyWrapper.height($mmGrid.height() - $headWrapper.outerHeight(true));
+            }
+
 
 
             //初始化排序状态
@@ -387,9 +390,17 @@
 
             //向下按钮
             var $btnBackboardDn = $mmGrid.find('a.mmg-btnBackboardDn').on('click', function(){
-                $backboard.height($mmGrid.height() - $headWrapper.outerHeight(true));
+                var backboardHeight = $mmGrid.height() - $headWrapper.outerHeight(true);
+                if(opts.height === 'auto'&& opts.backboardMinHeight !== 'auto' && backboardHeight < opts.backboardMinHeight){
+                    backboardHeight = opts.backboardMinHeight;
+                }
+                $backboard.height(backboardHeight);
+                if(opts.height === 'auto'){
+                    $mmGrid.height($headWrapper.outerHeight(true) + $backboard.outerHeight(true));
+                }
                 $backboard.slideDown();
                 $btnBackboardDn.slideUp('fast');
+
                 that._hideNoData();
             });
             $body.on('mouseenter', function(){
@@ -408,6 +419,9 @@
                 $backboard.slideUp().queue(function(next){
                     if(!that.rowsLength() || (that.rowsLength() === 1 && $body.find('tr.emptyRow').length === 1)){
                         that._showNoData();
+                    }
+                    if(opts.height === 'auto'){
+                        $mmGrid.height('auto');
                     }
                     next();
                 });
@@ -450,14 +464,19 @@
                                 colspan++;
                             }
                         });
-                        $th.prop('colspan',colspan);
+                        //IE bug
+                        if(colspan !== 0){
+                            $th.prop('colspan',colspan);
+                        }
                         iCol.hidden = hidden;
                     }
                 }
 
                 that._setColsWidth();
                 $backboard.height($mmGrid.height() - $headWrapper.outerHeight(true));
-                $bodyWrapper.height($mmGrid.height() - $headWrapper.outerHeight(true));
+                if(opts.height !== 'auto'){
+                    $bodyWrapper.height($mmGrid.height() - $headWrapper.outerHeight(true));
+                }
                 $mmGrid.find('a.mmg-btnBackboardDn').css({
                     'top': $headWrapper.outerHeight(true)
                 })
@@ -532,17 +551,19 @@
 
             //选中事件
             var $body = this.$body;
-            $body.on('click','td',function(){
+            $body.on('click','td',function(e){
                 var $this = $(this);
+                var event = jQuery.Event("cellSelected");
+                event.target = e.target;
+                that.$body.triggerHandler(event, [$.data($this.parent()[0], 'item'), $this.parent().index(), $this.index()]);
 
-
-                var isSelect = that.$body.triggerHandler('rowSelected', [$.data($this.parent()[0], 'item'), $this.parent().index(), $this.index()]);
-
-                if(isSelect === false){
+                if(event.isPropagationStopped()){
                     return;
                 }
                 if(!$this.parent().hasClass('selected')){
                     that.select($this.parent().index());
+                }else{
+                    that.deselect($this.parent().index());
                 }
             });
 
@@ -550,9 +571,9 @@
                 e.stopPropagation();
                 var $this = $(this);
                 if(this.checked){
-                    that.select($this.parent().parent().parent().index());
+                    that.select($($this.parents('tr')[0]).index());
                 }else{
-                    that.deselect($this.parent().parent().parent().index());
+                    that.deselect($($this.parents('tr')[0]).index());
                 }
             });
 
@@ -691,6 +712,8 @@
 
             $body.find('tr > td:nth-child('+(sortIndex+1)+')').addClass('colSelected')
                 .filter(':odd').addClass('colSelectedEven');
+
+            this._resizeHeight();
 
         }
         , _setColsWidth: function(){
@@ -967,13 +990,16 @@
                 $mmGrid.width(opts.width);
             }
 
-            if(browser.isIE6 && (!opts.height || opts.height === 'auto')){
-                $mmGrid.height('100%');
-                $mmGrid.height($mmGrid.height() - ($mmGrid.outerHeight(true) - $mmGrid.height()));
-            }else{
-                $mmGrid.height(opts.height);
+            if(opts.height !== 'auto'){
+                if(browser.isIE6 && (!opts.height || opts.height === 'auto')){
+                    $mmGrid.height('100%');
+                    $mmGrid.height($mmGrid.height() - ($mmGrid.outerHeight(true) - $mmGrid.height()));
+                }else{
+                    $mmGrid.height(opts.height);
+                }
+
+                $bodyWrapper.height($mmGrid.height() - $headWrapper.outerHeight(true));
             }
-            $bodyWrapper.height($mmGrid.height() - $headWrapper.outerHeight(true));
 
             //调整message
             var $message = $mmGrid.find('.mmg-message');
@@ -995,6 +1021,20 @@
             }
 
             $bodyWrapper.trigger('scroll');
+
+            this._resizeHeight();
+        }
+
+        , _resizeHeight: function(){
+            var opts = this.opts;
+            var $bodyWrapper = this.$bodyWrapper;
+            var $body= this.$body;
+            if(opts.height === 'auto' && browser.isIE7){
+                $bodyWrapper.height('auto');
+                if($bodyWrapper.width() < $body.width()){
+                    $bodyWrapper.height($bodyWrapper.height() + $bodyWrapper.height() - $bodyWrapper[0].clientHeight  + 1);
+                }
+            }
         }
 
             //选中
@@ -1263,9 +1303,10 @@
         , fullWidthRows: false
         , nowrap: false
         , showBackboard: true
+        , backboardMinHeight: 125
         , plugins: [] //插件 插件必须实现 init($mmGrid)和params()方法，参考mmPaginator
     };
-//  event : loadSuccess(e,data), loadError(e, data), rowSelected(item, rowIndex, colIndex)
+//  event : loadSuccess(e,data), loadError(e, data), cellSelected(e, item, rowIndex, colIndex)
 //          rowInserted(e,item, rowIndex), rowUpdated(e, oldItem, newItem, rowIndex), rowRemoved(e,item, rowIndex)
 //
 
