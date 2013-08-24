@@ -246,6 +246,16 @@
                 if(!col.lockWidth) titleHtml.push('<div class="mmg-colResize"></div>');
                 titleHtml.push('</div></th>');
             }else{
+                var displayColsLength = col.cols.length;
+                $.each(col.cols, function(index, item){
+                    console.log(item);
+                    if(item.hidden){
+                        displayColsLength--;
+                    }
+                });
+                if(displayColsLength === 0){
+                    col.hidden = true;
+                }
                 titleHtml.push('<th class="');
                 var colIndex =  $.inArray(col, this._expandCols(opts.cols));
                 titleHtml.push(this._genColClass(colIndex));
@@ -253,7 +263,7 @@
                 titleHtml.push(' rowspan="');
                 titleHtml.push(rowspan-1);
                 titleHtml.push('" colspan="');
-                titleHtml.push(col.cols.length);
+                titleHtml.push(displayColsLength);
                 titleHtml.push('" data-colIndex="');
                 titleHtml.push(colIndex);
                 titleHtml.push('" >');
