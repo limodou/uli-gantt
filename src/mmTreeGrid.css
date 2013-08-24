@@ -6,7 +6,7 @@
 
 /* jquery.mmGrid.collapsible
  * ------------------------------------------------------------------------- */
-.mmGrid tr td .expander {
+.mmGrid tr td a.expander {
   cursor: pointer;
   padding: 0;
   zoom: 1; /* IE7 Hack */
@@ -24,9 +24,10 @@
   text-decoration: none;
   position: absolute;
   left:0px;
-  top:6px;
+  top:5px;
   width:16px;
   height:16px;
+  z-index:99;
 }
 
 .mmGrid tr.collapsed td a.expander {
@@ -56,6 +57,10 @@
  * full jQuery UI CSS to be loaded. */
 .ui-helper-hidden { display: none; }
 
+.mmGrid .mmg-cellWrapper {
+  position:relative;
+}
+
 .mmGrid .mmg-bodyWrapper .mmg-body td.error {
   background-color: #b94a48;
 }
@@ -79,7 +84,7 @@
     height: 0px;
     position: absolute;
     top: 0px;
-    right: 0px;
+    right: -5px;
 }
 
 .mmg-notation.error{

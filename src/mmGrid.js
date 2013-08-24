@@ -248,7 +248,6 @@
             }else{
                 var displayColsLength = col.cols.length;
                 $.each(col.cols, function(index, item){
-                    console.log(item);
                     if(item.hidden){
                         displayColsLength--;
                     }

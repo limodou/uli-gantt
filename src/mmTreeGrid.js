@@ -15,7 +15,7 @@
             indent: 16,     //每级缩近的宽度值
 //            initialState: "collapsed",
             treeColumn: 0,  //可以是字段名
-            fieldTarget: 'div', //每个单元格的第一个子元素标签名，在生成每个单元格时要与此一致
+            fieldTarget: 'div.mmg-cellWrapper div', //每个单元格的第一个子元素标签名，在生成每个单元格时要与此一致
             persist: false, //是否将折叠状态保存在cookie中
             persistCookiePrefix: 'treeTable_',
             persistCookieOptions: {},
@@ -405,7 +405,7 @@
                         if(opts.nowrap){
                             trHtml.push(' nowrap');
                         }
-                        trHtml.push('"><div class="');
+                        trHtml.push('"><div class="mmg-cellWrapper"><div class="');
                         if(opts.nowrap){
                             trHtml.push('nowrap');
                         }
@@ -421,7 +421,7 @@
                         }else{
                             trHtml.push(item[col.name]);
                         }
-            
+                        trHtml.push('</div>');
                         trHtml.push('</span></td>');
                     };
                     trHtml.push('</tr>');
@@ -452,14 +452,14 @@
                         })
                         .done(function(r){
                             if(r.success){
-                                if($.isFunction(callback))
-                                    callback(r.data);
                                 if(r.update_data){
                                     for(var i=0; i<r.update_data.length; i++){
                                         item = $self.findItem(r.update_data[i][$self.opts.idField]);
                                         $self._update(r.update_data[i], item);
                                     }
                                 }
+                                if($.isFunction(callback))
+                                    callback(r.data);
                                 if($self.opts.showMessage && r.message){
                                     $self.opts.showMessage(r.message);
                                 }
@@ -510,6 +510,7 @@
             , mergeData: function (data){
                 if (!data) return;
                 
+                var item;
                 for(var i=0; i<data.length; i++){
                     item = this.findItem(data[i][this.opts.idField]);
                     this._update(data[i], item);
@@ -843,18 +844,23 @@
                 if (!node || node.length==0) return ;
                 
                 var cur;
-                var level = node.attr('level');
+                var level = parseInt(node.attr('level'));
+                var x;
                 
                 //如果是同层，则取相同的parent和level的下一个结点
                 cur = $(node).next();
                 while (cur.length>0){
-                    if(level == cur.attr('level')){
+                    x = parseInt(cur.attr('level'));
+                    if(level == x){
                         return cur;
-                    }else if (cur.attr('level') < level){
-                        if(!samelevel) return cur;
-                    }
+                    }else if (!samelevel){
+                        if (x < level){
+                            return cur;
+                        }
                     
-                    cur = $(cur).next();
+                        cur = $(cur).next();
+                    }
+                    return;
                 }
             }
             
@@ -1220,11 +1226,13 @@
                         d['level'] = Math.max(0, this._level(children[i])-1);
                         para.push(d);
                     }
-                    if(next){
+                    var nextNode = next;
+                    while(nextNode){
                         d = {}
-                        d[this.opts.idField] = this.row(next)[this.opts.idField];
+                        d[this.opts.idField] = this.row(nextNode)[this.opts.idField];
                         d[this.opts.parentField] = this.getKey(node);
                         para.push(d);
+                        nextNode = this.getNext(nextNode, true);
                     }
                     
                     function f(){
@@ -1241,8 +1249,10 @@
                         $self._indent(children, -1);
                         
                         //下一个同级结点应该是当前结点的子结点
-                        if (next){
-                            $self._setParentValue(next, node.attr($self.opts.keyAttrName));
+                        var nextNode = next;
+                        while (nextNode){
+                            $self._setParentValue(nextNode, node.attr($self.opts.keyAttrName));
+                            nextNode = $self.getNext(nextNode, true);
                         }
                         
                         $self.updateStyle(parent);
@@ -1301,10 +1311,10 @@
                         var icon = cell.find('span.tree-icon');
                         if(icon.length==0) {
                             icon = $('<span class="tree-icon"></span>');
-                            cell.prepend(icon);
+                            cell.children('div').prepend(icon);
                         }
                         target.css('paddingLeft', padding + this.opts.iconIndent+6);
-                        icon.css('left', padding-10 + this.opts.iconIndent);
+                        icon.css('left', padding-16 + this.opts.iconIndent);
                         icon.removeClass('tree-file').removeClass('tree-folder').removeClass('tree-folder-open');
                         if (node.hasClass('parent')) {
                             if(node.hasClass('expanded')){
@@ -1326,7 +1336,7 @@
                         if(this.opts.expandable) {
                             if (a.length==0){
                                 a = $('<a href="#" title="' + this.opts.stringExpand + '" class="expander"></a>');
-                                cell.prepend(a);
+                                cell.children('div').prepend(a);
                                 a.click(function() { $self.toggleExpand(node); return false; });
                                 if(this.opts.clickableNodeNames) {
                                     a.css('cursor', "pointer");
@@ -1346,7 +1356,7 @@
                         
                     }
 
-                    a.css('left', padding-10);
+                    a.css('left', padding-16);
                 }
             }
             /*
@@ -1360,7 +1370,7 @@
                 cell.attr('title', message);
                 cell.find('.mmg-notation').remove();
                 var item = $('<span class="mmg-notation '+cls+'" title="'+message+'"></span>');
-                cell.append(item);
+                cell.find('div.mmg-cellWrapper').append(item);
             }
             
             /*
