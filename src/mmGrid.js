@@ -1046,6 +1046,18 @@
             }
         }
 
+        , _updateIndex: function(){
+            if(this.opts.indexCol){
+                var $body = this.$body;
+                var index_col = this.opts.cols[0];
+                $body.find('tr').each(function(index, el){
+                    var col = $(el).find('td:first');
+                    col.html(index_col.renderer(null, null, index));
+                    console.log('xxxxxxxxxxx', index);
+                });
+            }
+        }
+
             //选中
         , select: function(args){
             var opts = this.opts;
@@ -1213,7 +1225,8 @@
             $tr.data('item', item);
             this._setStyle();
 
-
+            //update index
+            this._updateIndex();
             this.$body.triggerHandler('rowInserted', [item, index]);
         }
         //更新行内容，两个参数都必填
@@ -1265,6 +1278,8 @@
                 this._showNoData();
                 this._insertEmptyRow();
             }
+            //update index
+            this._updateIndex();
         }
     };
 

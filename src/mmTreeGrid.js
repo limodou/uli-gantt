@@ -156,6 +156,7 @@
                             }
                         }
                         
+                        this._updateIndex();
                         this._trigger($tr, 'added', item);
                         
                     }
@@ -182,6 +183,7 @@
                     else
                         parent.after($($tr));
                     
+                    this._updateIndex();
                     this._trigger($tr, 'added', item);
                     
                     var key = parent.attr(this.opts.keyAttrName);
@@ -343,6 +345,7 @@
                     }else{
                         $self._remove(nodes);
                     }
+                    $self._updateIndex();
                     $self._trigger($self.$body, {type:'deleted'}, data);
                     $self._setStyle();
                 }

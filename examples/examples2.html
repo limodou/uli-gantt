@@ -38,7 +38,7 @@
                 <button id="btnDown" class="button" title="收起">下移</button>
             </div>
             <table id="mmg"></table>
-            <div id="paginator" style="text-align: right;">
+            <div id="paginator" style="text-align: left;">
 
             </div>
             <div id="log" style="height:100px;overflow:auto;border:1px solid #ccc;">
@@ -88,7 +88,7 @@
 //                    , paginator: $('#paginator').mmPaginator()
                     , nowrap: true
                     , fullWidthRows: false
-
+                    , indexCol: true
                     //tree options
                     , treeColumn: 'name'  //第几列是树结点
                     , idField: 'id'  //缺省就是使用id
@@ -96,6 +96,10 @@
 //                    , initialState: "collapsed"
                     , clickableNodeNames: true  //单击结点名称自动切换展示，折叠状态
 //                    , expandable: false
+                    //増加分页器
+                    , plugins: [
+                        $('#paginator').mmPaginator({limitList:[2,4,8]})
+                    ]
                 });
                 
                 //$('#mmg').mmGrid('collapseAll');
