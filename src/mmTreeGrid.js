@@ -390,6 +390,8 @@
             
                 var opts = this.opts;
                 var cls;
+                var expandCols = this.$fullColumns;
+                var leafCols = this._leafCols();
                 
                 if($.isPlainObject(item)){
                     var trHtml = [];
@@ -401,10 +403,11 @@
                         }
                     }
                     trHtml.push('>');
-                    for(var colIndex=0; colIndex < opts.cols.length; colIndex++){
-                        var col = opts.cols[colIndex];
+                    for(var colIndex=0; colIndex < leafCols.length; colIndex++){
+                        var col = leafCols[colIndex];
                         trHtml.push('<td class="');
-                        trHtml.push(this._genColClass(colIndex));
+                        var index =  $.inArray(col, expandCols);
+                        trHtml.push(this._genColClass(index));
                         if(opts.nowrap){
                             trHtml.push(' nowrap');
                         }
@@ -764,8 +767,8 @@
             */
             , _getColumnIndex: function (index) {
                 if (!$.isNumeric(index)){
-                    for(var i=0; i<this.opts.cols.length; i++){
-                        if(this.opts.cols[i].name == index) return i;
+                    for(var i=0; i<this.$columns.length; i++){
+                        if(this.$columns[i].name == index) return i;
                     }
                     return ;
                 }else
@@ -1007,6 +1010,7 @@
                     return ;
                 }
                 
+                var that = this;
                 var $tr = this._get_item(index);
                 var checked = $tr.find('td:first :checkbox').is(':checked');
                 var text;
@@ -1015,8 +1019,8 @@
                 $.extend(data, item);
                 
                 $.each(data, function(key, value){
-                    for(var colIndex=0; colIndex < opts.cols.length; colIndex++){
-                        var col = opts.cols[colIndex];
+                    for(var colIndex=0; colIndex < that.$columns.length; colIndex++){
+                        var col = that.$columns[colIndex];
                         if(col.name == key){
                             if(col.renderer){
                                 text = col.renderer(data[col.name], data);

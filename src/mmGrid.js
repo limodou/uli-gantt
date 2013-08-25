@@ -7,6 +7,7 @@
         this._id = (((1 + Math.random()) * 0x10000) | 0).toString(16);
         this._loadCount = 0;
         this.opts = options;
+        this._initTitleDeep();
         this._initLayout($(element));
         this._initHead();
         this._initOptions();
@@ -103,14 +104,13 @@
             this.$body = $el.removeAttr("style").addClass('mmg-body');
             this._insertEmptyRow();
             this.$body.appendTo(this.$bodyWrapper);
-
+            
             //放回原位置
             if(elIndex === 0 || $elParent.children().length == 0){
                 $elParent.prepend(this.$mmGrid);
             }else{
                 $elParent.children().eq(elIndex-1).after(this.$mmGrid);
             }
-
 
             // fix in ie6
             if(browser.isIE6 && (!opts.width || opts.width === 'auto')){
@@ -130,13 +130,14 @@
             if(opts.checkCol){
                 var chkHtml = opts.multiSelect ?  '<input type="checkbox" class="checkAll" >'
                     : '<input type="checkbox" disabled="disabled" class="checkAll">';
-                opts.cols.unshift({title:chkHtml,width: 20, align: 'center' ,lockWidth: true, checkCol: true, renderer:function(){
+                opts.cols[0].unshift({title:chkHtml,width: 20, rowspan: this.$titleDeep, align: 'center' ,lockWidth: true, checkCol: true, renderer:function(){
                     return '<input type="checkbox" class="mmg-check">';
                 }});
             }
 
             if(opts.indexCol){
-                opts.cols.unshift({title:'#',width: opts.indexColWidth, align: 'center' ,lockWidth: true, indexCol:true, renderer:function(val,item,rowIndex){
+                opts.cols[0].unshift({title:'#',width: opts.indexColWidth, rowspan: this.$titleDeep, 
+                    align: 'center' ,lockWidth: true, indexCol:true, renderer:function(val,item,rowIndex){
                     return '<label class="mmg-index">' + (rowIndex+1) + '</label>';
                 }});
             }
@@ -144,32 +145,59 @@
         }
 
         ,_expandCols: function(cols){
-            var newCols = [];
-            if(!cols){
-               return newCols;
+            var c = []; //记录每行扫描的位置
+            var i;
+            var that = this;
+            for (i=0; i<cols.length; i++){
+                c[i] = 0;
             }
-            for(var colIndex=0; colIndex<cols.length; colIndex++){
-               var col = cols[colIndex];
-               if(col.cols){
-                   newCols.push(col);
-                   newCols.push.apply(newCols,this._expandCols(col.cols));
-               }else{
-                   newCols.push(col);
-               }
+            function fix_col(col){
+                col.colspan = col.colspan || 1;
+                col.rowspan = col.rowspan || 1;
+                return col;
             }
-            return newCols;
-        }
-        ,_leafCols: function(){
-            var opts = this.opts;
-            var newCols = [];
-            var cols = this._expandCols(opts.cols);
-            for(var colIndex=0; colIndex<cols.length; colIndex++){
-                var col = cols[colIndex];
-                if(!col.cols){
-                    newCols.push(col);
+            function is_leaf(col, deep){
+                if ((col.colspan === 1) && (col.rowspan === that.$titleDeep-deep)){
+                    col.isLeaf = true;
+                    return true;
+                }else{
+                    col.isLeaf = false;
+                    return false;
                 }
             }
-            return newCols;
+            function get_nodes(col, deep){
+                var _col;
+                var nodes = [];
+                var n;
+                var pos;
+                fix_col(col);
+                if(is_leaf(col, deep)) return [col];
+                n = 0;
+                pos = deep + col.rowspan;
+                for(var j=c[pos]; j<cols[pos].length; j++){
+                    _col = fix_col(cols[pos][j]);
+                    if (n + _col.colspan <= col.colspan){
+                        nodes = nodes.concat(get_nodes(_col, pos));
+                        c[pos] ++;
+                        n = n + _col.colspan;
+                        if (col.nodes) col.nodes.push(_col);
+                        else col.nodes = [_col];
+                    }else break;
+                }
+                nodes.unshift(col);
+                return nodes;
+            }
+            
+            var colspan, col, nodes=[];
+            for (var i=0; i<cols[0].length; i++){
+                col = cols[0][i];
+                nodes = nodes.concat(get_nodes(col, 0));
+            }
+            return nodes;
+        }
+
+        ,_leafCols: function(){
+            return this.$columns;
         }
 
         ,_expandThs: function(){
@@ -180,104 +208,63 @@
 
         ,_leafThs: function(){
             return this.$head.find('th').filter(function(){
-                return !$.data(this,'col').cols;
+                return $.data(this,'col').isLeaf;
             }).sort(function(a, b){
                 return parseInt($(a).data('colindex')) - parseInt($(b).data('colindex'));
             });
         }
 
-
-        ,_colsWithTitleDeep: function(cols,deep){
-            var newCols = [];
-            if(!cols){
-                return newCols;
-            }
-            for(var colIndex=0; colIndex<cols.length; colIndex++){
-                var col = cols[colIndex];
-                if(deep === 1){
-                    newCols.push(col);
+        /*
+            初始化列
+            计算title的深度，采用cols为多个[]的写法，例如：
+                cols: [[....], [....]]
+            为了兼容以前的写法，当第一个值不是[]类型时，自动包装为[[]]形式
+            同时实现列的扁平化
+        */
+        ,_initTitleDeep: function(){
+            var cols = this.opts.cols;
+            var deep = 0;
+            if (cols && cols.length > 0){
+                var col = cols[0];
+                if($.isArray(col)){
+                    deep = cols.length;
                 }else{
-                    newCols.push.apply(newCols, this._colsWithTitleDeep(col.cols, deep-1));
+                    this.opts.cols = [cols];
+                    deep = 1;
                 }
             }
-            return newCols;
+            this.$titleDeep = deep;
         }
 
-        ,_titleDeep: function(cols){
-            var deep = 1;
-            for(var colIndex=0; colIndex<cols.length; colIndex++){
-                var col = cols[colIndex];
-                if(col.cols){
-                    var newDeep = 1 + this._titleDeep(col.cols);
-                    if(deep < newDeep){
-                        deep = newDeep;
-                    }
-                }
-            }
-            return deep;
-        }
-
-        , _titleHtml: function(col, rowspan){
+        , _titleHtml: function(col){
             var opts = this.opts;
 
             var titleHtml = [];
-            if(!col.cols){
-                titleHtml.push('<th class="');
-                var colIndex =  $.inArray(col, this._expandCols(opts.cols));
-                titleHtml.push(this._genColClass(colIndex));
-                titleHtml.push(' " ');
-                titleHtml.push(' rowspan="');
-                titleHtml.push(rowspan);
-                titleHtml.push('" colspan="');
-                titleHtml.push(1);
-                titleHtml.push('" data-colIndex="');
-                titleHtml.push(colIndex);
-                titleHtml.push('" >');
-                titleHtml.push('<div class="mmg-titleWrapper" >');
-                titleHtml.push('<span class="mmg-title ');
-                if(col.sortable) titleHtml.push('mmg-canSort ');
-                titleHtml.push('">');
-                if(col.titleHtml){
-                    titleHtml.push(col.titleHtml);
-                }else{
-                    titleHtml.push(col.title);
-                }
-                titleHtml.push('</span><div class="mmg-sort"></div>');
-                if(!col.lockWidth) titleHtml.push('<div class="mmg-colResize"></div>');
-                titleHtml.push('</div></th>');
+            titleHtml.push('<th class="');
+            var colIndex =  $.inArray(col, this.$fullColumns);
+            titleHtml.push(this._genColClass(colIndex));
+            if (!col.isLeaf)
+                titleHtml.push(' mmg-groupCol');
+            titleHtml.push(' " ');
+            titleHtml.push(' rowspan="');
+            titleHtml.push(col.rowspan);
+            titleHtml.push('" colspan="');
+            titleHtml.push(col.colspan);
+            titleHtml.push('" data-colIndex="');
+            titleHtml.push(colIndex);
+            titleHtml.push('" >');
+            titleHtml.push('<div class="mmg-titleWrapper" >');
+            titleHtml.push('<span class="mmg-title ');
+            if(col.sortable) titleHtml.push('mmg-canSort ');
+            titleHtml.push('">');
+            if(col.titleHtml){
+                titleHtml.push(col.titleHtml);
             }else{
-                var displayColsLength = col.cols.length;
-                $.each(col.cols, function(index, item){
-                    if(item.hidden){
-                        displayColsLength--;
-                    }
-                });
-                if(displayColsLength === 0){
-                    col.hidden = true;
-                }
-                titleHtml.push('<th class="');
-                var colIndex =  $.inArray(col, this._expandCols(opts.cols));
-                titleHtml.push(this._genColClass(colIndex));
-                titleHtml.push(' mmg-groupCol" ');
-                titleHtml.push(' rowspan="');
-                titleHtml.push(rowspan-1);
-                titleHtml.push('" colspan="');
-                titleHtml.push(displayColsLength);
-                titleHtml.push('" data-colIndex="');
-                titleHtml.push(colIndex);
-                titleHtml.push('" >');
-                titleHtml.push('<div class="mmg-titleWrapper" >');
-                titleHtml.push('<span class="mmg-title ');
-                if(col.sortable) titleHtml.push('mmg-canSort ');
-                titleHtml.push('">');
-                if(col.titleHtml){
-                    titleHtml.push(col.titleHtml);
-                }else{
-                    titleHtml.push(col.title);
-                }
-                titleHtml.push('</span><div class="mmg-sort"></div>');
-                titleHtml.push('</div></th>');
+                titleHtml.push(col.title);
             }
+            titleHtml.push('</span><div class="mmg-sort"></div>');
+            if(!col.lockWidth) titleHtml.push('<div class="mmg-colResize"></div>');
+            titleHtml.push('</div></th>');
 
             return titleHtml.join("");
         }
@@ -286,18 +273,21 @@
             var that = this;
             var opts = this.opts;
             var $head = this.$head;
-
-            if(opts.cols){
+            var titleDeep = that.$titleDeep;
+            
+            this.$fullColumns = this._expandCols(this.opts.cols);
+            this.$columns = this.$fullColumns.filter(function(x){
+                return x.isLeaf;
+            });
+            
+            if(titleDeep){
                 var theadHtmls = ['<thead>'];
-
-                //获取标题深度
-                var titleDeep = that._titleDeep(opts.cols);
-                for(var deep=1; deep<= titleDeep; deep++){
-                    var cols = that._colsWithTitleDeep(opts.cols, deep);
+                for(var i=0; i< titleDeep; i++){
+                    var cols = opts.cols[i];
                     theadHtmls.push('<tr>');
                     for(var colIndex=0; colIndex< cols.length; colIndex++){
                         var col = cols[colIndex];
-                        theadHtmls.push(this._titleHtml(col, titleDeep-deep+1));
+                        theadHtmls.push(this._titleHtml(col));
                     }
                     theadHtmls.push('</tr>');
                 }
@@ -306,7 +296,7 @@
             }
 
             var $ths = this._expandThs();
-            var expandCols = this._expandCols(opts.cols);
+            var expandCols = this.$fullColumns;
             $.each($ths,function(index){
                 if(!expandCols[index].width){
                     expandCols[index].width = 100;
@@ -381,7 +371,7 @@
             var $body = this.$body;
             var $backboard = this.$backboard;
             var $ths = this._expandThs();
-            var expandCols = this._expandCols(opts.cols);
+            var expandCols = this.$fullColumns;
             var leafCols = this._leafCols();
 
             //调整浏览器
@@ -464,17 +454,18 @@
                 for(var colIndex=$ths.length-1; colIndex>=0; colIndex--){
                     var $th = $ths.eq(colIndex);
                     var iCol = $th.data('col');
-                    if(iCol.cols){
+                    if(! iCol.isLeaf){
                         var hidden = true;
                         var colspan = 0;
-                        $.each(iCol.cols,function(index,item){
+                        $.each(iCol.nodes,function(index,item){
                             if(!item.hidden){
                                 hidden = false;
-                                colspan++;
+                                colspan = colspan + item.colspan;
                             }
                         });
                         //IE bug
                         if(colspan !== 0){
+                            iCol.colspan = colspan;
                             $th.prop('colspan',colspan);
                         }
                         iCol.hidden = hidden;
@@ -619,7 +610,7 @@
         }
         , _rowHtml: function(item, rowIndex){
             var opts = this.opts;
-            var expandCols = this._expandCols(opts.cols);
+            var expandCols = this.$fullColumns;
             var leafCols = this._leafCols();
 
 
@@ -733,7 +724,7 @@
             var $bodyWrapper = this.$bodyWrapper;
             var $body = this.$body;
             var $ths = this._expandThs();
-            var expandCols = this._expandCols(opts.cols);
+            var expandCols = this.$fullColumns;
 
             var scrollTop = $bodyWrapper.scrollTop();
             var scrollLeft = $head.position().left;
@@ -803,7 +794,7 @@
                     thsArr.push($th);
                 }
             }
-
+            
             var increaseWidth =  Math.floor(fitWidth / thsArr.length);
             var maxColWidthIndex = 0;
             for(var i=0; i< thsArr.length; i++){
@@ -1053,7 +1044,6 @@
                 $body.find('tr').each(function(index, el){
                     var col = $(el).find('td:first');
                     col.html(index_col.renderer(null, null, index));
-                    console.log('xxxxxxxxxxx', index);
                 });
             }
         }
