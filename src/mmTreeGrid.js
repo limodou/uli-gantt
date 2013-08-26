@@ -64,6 +64,10 @@
                 _children 为 [] ，是当前结点的子结点
                 index为指定的父结点，或者为序号或者为tr元素
                 如果index为0，则插入最前面
+                如果index为undefined，则表示自动判断数据中是否有父结点，自动按父结点
+                来进行父子关系处理。则否视为0的效果。所以，如果数据中有父结点，但是
+                不想以父结点方式来插入（子结点），则应指定index为插入位置，同时设
+                置合适的position值。
                 如果为undefined或null，则添加到最后
                 position为插入的位置：before为向前插入， after为向后插入,
                 last为在存在父结点时，插入到子结点的最后，如果无父结点则和after一样
@@ -113,7 +117,7 @@
                 }
                 else{
                     //如果定义了父结点值，查找父结点是否存在，如果不存在则抛出错误
-                    if (item[this.opts.parentField]){
+                    if (index===undefined && item[this.opts.parentField]){
                         parent = this.findItem(item[this.opts.parentField]);
                         if (!parent){
                             this._trigger(this.$body, {type:'error',
@@ -344,6 +348,12 @@
                         }
                     }else{
                         $self._remove(nodes);
+                    }
+                    
+                    //更新所有父结点的样式
+                    var parents = $self.getParents(node);
+                    for(var i=0; i<parents.length; i++){
+                        $self.updateStyle($(parents[i]));
                     }
                     $self._updateIndex();
                     $self._trigger($self.$body, {type:'deleted'}, data);
