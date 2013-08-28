@@ -499,7 +499,7 @@
                     callback(undefined, 'direct');
             }
             
-            , saveOrdering: function (){
+            , saveOrdering: function (callback){
                 var para = [];
                 var nodes = this.$body.find('tbody tr');
                 var d;
@@ -518,7 +518,7 @@
                         ordering = data[this.opts.orderingField];
                     }
                 }
-                this._bind_handler('saveOrdering', para);
+                this._bind_handler('saveOrdering', para, callback);
             }
             /*
                 将后台返回的数据合并到数据中，格式为 [{id: k1:, k2}]
@@ -876,7 +876,6 @@
                     
                         cur = $(cur).next();
                     }
-                    return;
                 }
             }
             

@@ -551,7 +551,7 @@
 
             //选中事件
             var $body = this.$body;
-            $body.on('click','td',function(e){
+            $body.on('click, dblclick','td',function(e){
                 var $this = $(this);
                 var event = jQuery.Event("cellSelected");
                 event.target = e.target;
@@ -1040,7 +1040,7 @@
         , _updateIndex: function(){
             if(this.opts.indexCol){
                 var $body = this.$body;
-                var index_col = this.opts.cols[0];
+                var index_col = this.opts.cols[0][0];
                 $body.find('tr').each(function(index, el){
                     var col = $(el).find('td:first');
                     col.html(index_col.renderer(null, null, index));
