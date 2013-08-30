@@ -551,7 +551,11 @@
 
             //选中事件
             var $body = this.$body;
-            $body.on('click, dblclick','td',function(e){
+            $body.on('click dblclick','td',function(e){
+                //清除选中文本
+                document.selection && document.selection.empty && ( document.selection.empty(), 1)
+                || window.getSelection && window.getSelection().removeAllRanges();
+                
                 var $this = $(this);
                 var event = jQuery.Event("cellSelected");
                 event.target = e.target;

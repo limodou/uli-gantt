@@ -937,13 +937,13 @@
                     if(!opts.multiSelect){
                         $body.find('tr.selected').removeClass('selected');
                         if(opts.checkCol){
-                            $body.find('tr > td:nth-child(1)').find(':checkbox').prop('checked','');
+                            $body.find('tr > td').find('.mmg-check').prop('checked','');
                         }
                     }
                     if(!$tr.hasClass('selected')){
                         $tr.addClass('selected');
                         if(opts.checkCol){
-                            $tr.find('td:first :checkbox').prop('checked','checked');
+                            $tr.find('td .mmg-check').prop('checked','checked');
                         }
                     }
                 }else if(typeof args === 'function'){
@@ -953,7 +953,7 @@
                             if(!$this.hasClass('selected')){
                                 $this.addClass('selected');
                                 if(opts.checkCol){
-                                    $this.find('td:first :checkbox').prop('checked','checked');
+                                    $this.find('td .mmg-check').prop('checked','checked');
                                 }
                             }
                         }
@@ -961,7 +961,16 @@
                 }else if(args === undefined || (typeof args === 'string' && args === 'all')){
                     $body.find('tr.selected').removeClass('selected');
                     $body.find('tr').addClass('selected');
-                    $body.find('tr > td:nth-child(1)').find(':checkbox').prop('checked','checked');
+                    $body.find('tr > td').find('.mmg-check').prop('checked','checked');
+                }else{
+                    return;
+                }
+                
+                if(opts.checkCol){
+                    var $checks = $body.find('tr > td').find('.mmg-check');
+                    if($checks.length === $checks.filter(':checked').length){
+                        $head.find('th .checkAll').prop('checked','checked');
+                    }
                 }
                 
                 this._trigger($body, 'selected');
@@ -971,6 +980,7 @@
             , deselect: function(args){
                 var opts = this.opts;
                 var $body = this.$body;
+                var $head = this.$head;
                 
                 e = this._trigger($body, 'deselect');
                 if(e.isDefaultPrevented()) return;
@@ -978,23 +988,27 @@
                 if(typeof args === 'number'){
                     $body.find('tr').eq(args).removeClass('selected');
                     if(opts.checkCol){
-                        $body.find('tr').eq(args).find('td:first :checkbox').prop('checked','');
+                        $body.find('tr').eq(args).find('td .mmg-check').prop('checked','');
                     }
                 }else if(typeof args === 'function'){
                     $.each($body.find('tr'), function(index){
                         if(args($.data(this, 'item'), index)){
                             $(this).removeClass('selected');
                             if(opts.checkCol){
-                                $(this).find('td:first :checkbox').prop('checked','');
+                                $(this).find('td .mmg-check').prop('checked','');
                             }
                         }
                     });
                 }else if(args === undefined || (typeof args === 'string' && args === 'all')){
                     $body.find('tr.selected').removeClass('selected');
                     if(opts.checkCol){
-                        $body.find('tr > td:nth-child(1)').find(':checkbox').prop('checked','');
+                        $body.find('tr > td').find('.mmg-check').prop('checked','');
                     }
+                }else{
+                    return;
                 }
+                
+                $head.find('th .checkAll').prop('checked','');
                 
                 this._trigger($body, 'deselected');
                 
