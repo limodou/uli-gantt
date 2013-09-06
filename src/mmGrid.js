@@ -276,7 +276,7 @@
             var titleDeep = that.$titleDeep;
             
             this.$fullColumns = this._expandCols(this.opts.cols);
-            this.$columns = this.$fullColumns.filter(function(x){
+            this.$columns = $.grep(this.$fullColumns, function(x){
                 return x.isLeaf;
             });
             
