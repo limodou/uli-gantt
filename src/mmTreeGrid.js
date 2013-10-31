@@ -213,6 +213,7 @@
                 }else
                     this.updateStyle($tr, false);
                 
+                this._updateIndex();
                 return $tr
             }
             
@@ -231,18 +232,26 @@
                 查找当前元素的上一个兄弟结点
             */
             
-            , _populate: function(items){
+            , _populate: function(items, append){
                 var opts = this.opts;
                 var $body = this.$body;
                 this._initing = true;   //初始化标志
-            
-                this._hideNoData();
+                var replace = false;
+                var has_body = $body.find('tbody').size() > 0;
+                
+                if (!has_body || (!append && has_body))
+                    replace = true;
+                
+                this._hideMessage();
                 if(items && items.length !== 0 && opts.cols){
-                    $body.empty().html('<tbody></tbody>');
+                    if (replace)
+                        $body.empty().html('<tbody></tbody>');
                     this.add(items, undefined, 'last')
                 }else{
-                    this._insertEmptyRow();
-                    this._showNoData();
+                    if (replace){
+                        this._insertEmptyRow();
+                        this._showNoData();
+                    }
                 }
                 this._setStyle();
                 
@@ -405,7 +414,10 @@
                 
                 if($.isPlainObject(item)){
                     var trHtml = [];
-                    trHtml.push('<tr '+ opts.keyAttrName + '="' + item[opts.idField] + '"');
+                    if (item[opts.idField])
+                        trHtml.push('<tr '+ opts.keyAttrName + '="' + item[opts.idField] + '"');
+                    else
+                        trHtml.push('<tr');
                     if($.isFunction(opts.cssRender)){
                         cls = opts.cssRender(item);
                         if (cls[0] == 'add'){
@@ -433,9 +445,9 @@
                         }
                         trHtml.push('>');
                         if(col.renderer){
-                            trHtml.push(col.renderer(item[col.name],item));
+                            trHtml.push(col.renderer(item[this._getColName(col)],item));
                         }else{
-                            trHtml.push(item[col.name]);
+                            trHtml.push(item[this._getColName(col)]);
                         }
                         trHtml.push('</div>');
                         trHtml.push('</span></td>');
@@ -778,7 +790,7 @@
             , _getColumnIndex: function (index) {
                 if (!$.isNumeric(index)){
                     for(var i=0; i<this.$columns.length; i++){
-                        if(this.$columns[i].name == index) return i;
+                        if(this._getColName(this.$columns[i]) == index) return i;
                     }
                     return ;
                 }else
@@ -873,7 +885,7 @@
                         if (x < level){
                             return cur;
                         }
-                    
+
                         cur = $(cur).next();
                     }
                 }
@@ -1044,9 +1056,9 @@
                 $.each(data, function(key, value){
                     for(var colIndex=0; colIndex < that.$columns.length; colIndex++){
                         var col = that.$columns[colIndex];
-                        if(col.name == key){
+                        if(that._getColName(col) == key){
                             if(col.renderer){
-                                text = col.renderer(data[col.name], data);
+                                text = col.renderer(data[that._getColName(col)], data);
                             }else{
                                 text = value;
                             }

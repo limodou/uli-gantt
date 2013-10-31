@@ -17,11 +17,16 @@
                 '<div class="limit"><select></select></div>'
             ];
             $el.append($(pgHtmls.join('')));
-
+            
             this.$totalCountLabel = $el.find('.totalCountLabel');
             this.$pageList = $el.find('.pageList');
             this.$limitList = $el.find('.limit select');
-
+            this.$infinite_stop = false;
+            this.$scroll_running = false;
+            this.$lastScrollX = 0;
+            var body = this.$mmGrid.$bodyWrapper;
+            this.$bodyBottom = body.offset().top + body.height();
+            
              var $limitList = this.$limitList
             $.each(opts.limitList, function(){
                 var $option = $('<option></option>')
@@ -32,6 +37,26 @@
 
             $limitList.on('change', function(){
                 that.$mmGrid.load();
+            });
+            
+            //if infinite, then hidden the element
+            if (opts.infinite){
+                $el.find('ul.pageList, div.limit').hide();
+            }
+                
+            this.$mmGrid.$bodyWrapper.on('scroll', function(e){
+                if (!opts.infinite || that.$scroll_running) return;
+                that.$scroll_running = true;
+                var top = $(e.target).scrollTop();
+                var last = that.$lastScrollX;
+                that.$lastScrollX = top;
+                setTimeout(function(){
+                    if (last < top)
+                        that._check_visible();
+                    else{
+                        that.$scroll_running = false;
+                    }
+                }, 400);
             });
 
         }
@@ -125,6 +150,7 @@
                 totalCount = 0;
             }
             $el.data('totalCount', totalCount);
+            this.$infinite_stop = false;
 
             var limit = params[opts.limitParamName];
             if(!limit){
@@ -136,8 +162,41 @@
             this.$pageList.empty();
 
             this._plain(page, totalCount, this.$limitList.val());
+            
+            this._check_visible();
+        }
+        
+        , _test_visible: function(el){
+            var top = $(el).offset().top;
+            
+            return top < this.$bodyBottom;
         }
 
+        , _check_visible: function(){
+            var opts = this.opts;
+            
+            if (!opts.infinite) return;
+            
+            var $el = this.$el;
+            var page = $el.data('page');
+            var limit = parseInt(this.$limitList.val());
+            var total = $el.data('totalCount');
+
+            if (page+limit-1<total){
+                var $tbody = this.$mmGrid.$body.find('tbody');
+                var el = $tbody.find('tr:last');
+                var that = this;
+                
+                if (el.size()>0){
+                    if (this._test_visible(el)){
+                        $el.data('page', page+1);
+                        that.$mmGrid.load({}, true);
+                    }
+                }
+            }
+            this.$scroll_running = false;
+        }
+        
         , formatString: function(text, args){
             return text.replace(/{(\d+)}/g, function(match, number) {
                 return typeof args[number] != 'undefined'
@@ -165,6 +224,9 @@
             this._initLayout();
             this.$mmGrid.on('loadSuccess', function(e, data){
                 that.load(data);
+                if(opts.infinite){
+                    that.$scroll_running = false;
+                }
             });
 
             var params = {};
@@ -219,6 +281,7 @@
         , totalCountLabel: '共<span>{0}</span>条记录'
         , limit: undefined
         , limitList: [20, 30, 40, 50]
+        , infinite: false  //无限分页，要与mmPaginator配合
     };
 
     $.fn.mmPaginator.Constructor = MMPaginator;

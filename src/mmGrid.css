@@ -51,7 +51,9 @@
     position: absolute;
     display: none;
     text-align: center;
-
+    background-color: #ffc;
+    padding:5px;
+    border: 1px solid #999;
 }
 
 .mmGrid .mmg-loading .mmg-loadingImg{
@@ -101,8 +103,9 @@
     overflow: hidden;
 }
 
-.mmGrid .mmg-headWrapper .mmg-head th.mmg-groupCol{
-    /* 分组列 */
+.mmGrid .mmg-headWrapper .mmg-head th.mmg-groupCol .mmg-titleWrapper{
+    margin:0;
+    text-align:center;
 }
 
 .mmGrid .mmg-headWrapper .mmg-head th input{
@@ -279,6 +282,8 @@
 
 .mmGrid .mmg-bodyWrapper .mmg-body td .mmg-index{
     color: #555;
+    margin-bottom:0px;
+    font-size: 12px;
 }
 
 .mmGrid .nowrap{
@@ -338,6 +343,26 @@
     cursor: pointer;
 }
 
+.mmGrid .tree-folder {
+  background: url('img/tree_icons.png') no-repeat -208px 0;
+}
+.mmGrid .tree-folder-open {
+  background: url('img/tree_icons.png') no-repeat -224px 0;
+}
+.mmGrid .tree-file {
+  background: url('img/tree_icons.png') no-repeat -240px 0;
+}
+
+.mmGrid .tree-icon {
+  position: absolute;
+  left:0px;
+  top:5px;
+  width:16px;
+  height:16px;
+  vertical-align: middle;
+  overflow: hidden;
+  border:0px solid red;
+}
 
 
 

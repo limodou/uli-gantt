@@ -43,7 +43,7 @@
 </head>
 <body>
 <header class="container_12">
-    <h1 ><a class="index" href="index.html">mmGrid</a> <a href="api.html" >参数列表</a>  <a href="examples1.html" >操作示例&Bootstrap样式</a></h1>
+    <h1 ><a class="index" href="index.html">mmGrid</a> <a href="api.html" >参数列表</a>  <a href="examples1.html" >操作示例&Bootstrap样式</a> <a href="examples2.html">树型展示</a></h1>
     <hr>
 </header>
 <main class="container_12">
@@ -216,13 +216,28 @@
 
     <h2>十二、表头分组</h2>
     <p>
-        列模型可嵌套一个cols选项用来将表头分组，目前只支持两层。
+        列模型可嵌套一个cols选项用来将表头分组，定义格式类似于jqery easyui。
     </p>
     <div class="grid-100">
         <table id="table12-1"></table>
     </div>
     <div class="clear"></div>
     <hr >
+
+    <h2>十三、无限分页</h2>
+    <p>
+        这里是在mmPaginator基本之上进行的修改，所以其它的分页器不能支持。本例因为不能实现分页，所以看不出效果。
+    </p>
+    <div class="grid-100">
+        <table id="table13-1"></table>
+        <div style="text-align:right;">
+            <div id="paginator13-1"></div>
+        </div>
+    </div>
+    <div class="clear"></div>
+    <hr >
+
+
 </main>
 <a href="https://github.com/miemiedev/mmGrid"><img style="position: absolute; top: 0; right: 0; border: 0;" src="https://s3.amazonaws.com/github/ribbons/forkme_right_red_aa0000.png" alt="Fork me on GitHub"></a>
 

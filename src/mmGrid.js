@@ -102,9 +102,12 @@
             this.$bodyWrapper = $mmGrid.find('.mmg-bodyWrapper');
             this.$count = 0;        //记录所有数据,一行一条
             this.$body = $el.removeAttr("style").addClass('mmg-body');
+            this.$page = 1;
+            this.$limit = 0;
+            this.$runing = 0;
             this._insertEmptyRow();
             this.$body.appendTo(this.$bodyWrapper);
-            
+
             //放回原位置
             if(elIndex === 0 || $elParent.children().length == 0){
                 $elParent.prepend(this.$mmGrid);
@@ -274,12 +277,12 @@
             var opts = this.opts;
             var $head = this.$head;
             var titleDeep = that.$titleDeep;
-            
+
             this.$fullColumns = this._expandCols(this.opts.cols);
             this.$columns = $.grep(this.$fullColumns, function(x){
                 return x.isLeaf;
             });
-            
+
             if(titleDeep){
                 var theadHtmls = ['<thead>'];
                 for(var i=0; i< titleDeep; i++){
@@ -318,7 +321,7 @@
             if(opts.sortName){
                 for(var colIndex=0; colIndex< expandCols.length; colIndex++){
                     var col = expandCols[colIndex];
-                    if(col.sortName === opts.sortName || col.name === opts.sortName){
+                    if(col.sortName === opts.sortName || this._getColName(col) === opts.sortName){
                         var $th= $ths.eq(colIndex);
                         $.data($th.find('.mmg-title')[0],'sortStatus',opts.sortStatus);
                         $th.find('.mmg-sort').addClass('mmg-'+opts.sortStatus);
@@ -612,6 +615,10 @@
                 this._plugins_init_functions[i].call(this);
             }
         }
+        , _getColName: function(col){
+            var opts = this.opts;
+            return col[this.opts.nameField];
+        }
         , _rowHtml: function(item, rowIndex){
             var opts = this.opts;
             var expandCols = this.$fullColumns;
@@ -635,9 +642,9 @@
                     }
                     trHtml.push('">');
                     if(col.renderer){
-                        trHtml.push(col.renderer(item[col.name],item,rowIndex));
+                        trHtml.push(col.renderer(item[this._getColName(col)],item,rowIndex));
                     }else{
-                        trHtml.push(item[col.name]);
+                        trHtml.push(item[this._getColName(col)]);
                     }
 
                     trHtml.push('</span></td>');
@@ -647,28 +654,41 @@
             }
         }
 
-        , _populate: function(items){
+        , _populate: function(items, append){
             var opts = this.opts;
             var $body = this.$body;
+            var replace = false;
+            var has_body = $body.find('tbody').size() > 0;
+            
+            if (!has_body || (!append && has_body))
+                replace = true;
 
             this._hideNoData();
             if(items && items.length !== 0 && opts.cols){
 
                 var tbodyHtmls = [];
-                tbodyHtmls.push('<tbody>');
+                if (replace)
+                    tbodyHtmls.push('<tbody>');
                 for(var rowIndex=0; rowIndex < items.length; rowIndex++){
                     var item = items[rowIndex];
                     tbodyHtmls.push(this._rowHtml(item, rowIndex));
                 }
-                tbodyHtmls.push('</tbody>');
-                $body.empty().html(tbodyHtmls.join(''));
+                if (replace)
+                    tbodyHtmls.push('</tbody>');
+                    
+                if (replace)
+                    $body.empty().html(tbodyHtmls.join(''));
+                else
+                    $body.find('tbody').append(tbodyHtmls.join(''));
                 var $trs = $body.find('tr');
                 for(var rowIndex=0; rowIndex < items.length; rowIndex++){
                     $.data($trs.eq(rowIndex)[0],'item',items[rowIndex]);
                 }
             }else{
-                this._insertEmptyRow();
-                this._showNoData();
+                if (replace){
+                    this._insertEmptyRow();
+                    this._showNoData();
+                }
             }
             this._setStyle();
 
@@ -798,7 +818,7 @@
                     thsArr.push($th);
                 }
             }
-            
+
             var increaseWidth =  Math.floor(fitWidth / thsArr.length);
             var maxColWidthIndex = 0;
             for(var i=0; i< thsArr.length; i++){
@@ -894,7 +914,7 @@
             }
         }
 
-        , _loadAjax: function(args){
+        , _loadAjax: function(args, append){
             var that = this;
             var opts = this.opts;
             var params = {};
@@ -914,7 +934,7 @@
                     if(status){
                         var col = $titles.eq(colIndex).parent().parent().data('col');
                         sortName = col.sortName ?
-                            col.sortName : col.name;
+                            col.sortName : this._getColName(col);
                         sortStatus = status;
                     }
                 }
@@ -940,10 +960,15 @@
             }).done(function(data){
                 //获得root对象
                 var items = data;
+                that.$page = data.page || 1;
+                that.$limit = data.limit || 0;
                 if($.isArray(data[opts.root])){
                     items = data[opts.root];
                 }
-                that._populate(items);
+                that.$runing = 1;
+                that._populate(items, append);
+                that.$runing = 0;
+                that._updateIndex(append);
                 if(!opts.remoteSort){
                     that._refreshSortStatus();
                 }
@@ -961,7 +986,7 @@
             this._refreshSortStatus();
             this.$body.triggerHandler('loadSuccess', args);
         }
-        , load: function(args){
+        , load: function(args, append){
             var opts = this.opts;
             this._hideMessage();
             this._showLoading();
@@ -971,7 +996,7 @@
                 //加载本地数据
                 this._loadNative(args);
             }else if(opts.url){
-                this._loadAjax(args);
+                this._loadAjax(args, append);
             }else if(opts.items){
                 this._loadNative(opts.items);
             }else{
@@ -1041,13 +1066,16 @@
             }
         }
 
-        , _updateIndex: function(){
-            if(this.opts.indexCol){
+        , _updateIndex: function(append){
+            if(this.opts.indexCol && !this.$runing){
                 var $body = this.$body;
                 var index_col = this.opts.cols[0][0];
+                var start = (this.$page - 1) * this.$limit;
+                if (append)
+                    start = 0;
                 $body.find('tr').each(function(index, el){
                     var col = $(el).find('td:first');
-                    col.html(index_col.renderer(null, null, index));
+                    col.html(index_col.renderer(null, null, start+index));
                 });
             }
         }
@@ -1307,6 +1335,7 @@
         , method: 'POST'
         , cache: false
         , root: 'items'
+        , nameField: 'name'
         , items: []
         , autoLoad: true
         , remoteSort: false

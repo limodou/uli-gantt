@@ -295,4 +295,18 @@ $(document).ready(function(){
         cols: groupCols,
         items: items
     });
+
+    //无限分页
+    $('#table13-1').mmGrid({
+        indexCol: true,
+        indexColWidth: 35,
+        cols: cols,
+        url: 'data/stockQuotePage.json',
+        method: 'get',
+        root: 'items',
+        plugins : [
+            $('#paginator13-1').mmPaginator({infinite:true})
+        ]
+    });
+
 });
