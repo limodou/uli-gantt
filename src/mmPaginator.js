@@ -22,7 +22,6 @@
             this.$pageList = $el.find('.pageList');
             this.$limitList = $el.find('.limit select');
             this.$infinite_stop = false;
-            this.$scroll_running = false;
             this.$lastScrollX = 0;
             var body = this.$mmGrid.$bodyWrapper;
             this.$bodyBottom = body.offset().top + body.height();
@@ -44,21 +43,15 @@
                 $el.find('ul.pageList, div.limit').hide();
             }
                 
-            this.$mmGrid.$bodyWrapper.on('scroll', function(e){
-                if (!opts.infinite || that.$scroll_running) return;
-                that.$scroll_running = true;
-                var top = $(e.target).scrollTop();
+            scrolling(this.$mmGrid.$bodyWrapper[0], function(){
+                if (!opts.infinite) return;
+                var top = that.$mmGrid.$bodyWrapper.scrollTop();
                 var last = that.$lastScrollX;
                 that.$lastScrollX = top;
-                setTimeout(function(){
-                    if (last < top)
-                        that._check_visible();
-                    else{
-                        that.$scroll_running = false;
-                    }
-                }, 400);
+                if (last < top)
+                    that._check_visible();
             });
-
+            
         }
 
         , _plain: function(page, totalCount, limit){
@@ -194,7 +187,6 @@
                     }
                 }
             }
-            this.$scroll_running = false;
         }
         
         , formatString: function(text, args){
@@ -224,9 +216,6 @@
             this._initLayout();
             this.$mmGrid.on('loadSuccess', function(e, data){
                 that.load(data);
-                if(opts.infinite){
-                    that.$scroll_running = false;
-                }
             });
 
             var params = {};
