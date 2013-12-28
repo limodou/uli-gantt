@@ -569,9 +569,21 @@
                 }
                 if(!$this.parent().hasClass('selected')){
                     that.select($this.parent().index());
+                    
+                    //増加对单元格编辑的支持
+                    if (opts.editable){
+                        var leafCols = that._leafCols();
+                        var index = $this.index();
+                        var col = leafCols[index];
+                        if (col.editor){
+                            that._create_editor($this, col);
+//                            $this.data('editing') = true;
+                        }
+                    }
                 }else{
                     that.deselect($this.parent().index());
                 }
+                
             });
 
             $body.on('click','tr > td .mmg-check',function(e){
@@ -605,6 +617,72 @@
             };
 
 
+        }
+        /*
+         * 创建单元编辑器
+         * el 为td元素
+         * col 为column配置项
+         * col.editor = {type:'string|date|bool', value:'初始值'}
+         */
+        , _create_editor: function(el, col){
+            var that = this;
+            
+            el = $(el);
+            //检查是否已经创建了Editor
+            if (el.find('form').size() > 0)
+                return;
+                
+            var type = col.editor.type || 'text';
+            var data = $.data(el.parent()[0],'item');
+            
+            function callback(result, settings){
+                if (result.success){
+                    that.onEditorCallback(el.parent()[0], col, result.data);
+                    return true;
+                }
+            }
+            function modified(v, settings){
+                if (type == 'bool')
+                    v = v == 'on' ? true: false;
+                else if(type == 'int')
+                    v = parseInt(v);
+                return settings.data !== v;
+            }
+            
+            //判断如果有choices，则处理为select
+            function get_data(revert, settings){
+                var v = data[col.name];
+                var editor_data = v;
+                if (col.editor.choices && col.editor.choices.length > 0){
+                    type = 'select';
+                    editor_data = col.editor.choices;
+                    editor_data.push(['selected', v]);
+                }
+                return editor_data;
+            }
+            
+            var node = el.find('div div');
+            node.editable('destroy');
+            node.editable(this.opts.cellEditUrl,
+                {
+                id:'key',
+                onblur:'submit',
+                type:type,
+                data:get_data,
+                submitdata:{id:data.id, name:col.name},
+                callback:callback,
+                modified:modified,
+                ajaxoptions: {dataType:'json', type:'POST'},
+                submit:'',
+                cancel:'',
+                inputOptions:col.editor.options
+                });
+            node.click();
+            
+        }
+        , onEditorCallback: function(row, col, value){
+            var data = $.data(row, 'item');
+            data[col.name] = value;
         }
 
         //用来保存插件的初始化函数
@@ -1352,6 +1430,8 @@
         , showBackboard: true
         , backboardMinHeight: 125
         , plugins: [] //插件 插件必须实现 init($mmGrid)和params()方法，参考mmPaginator
+        , editable: false //是否可以编辑
+        , cellEditUrl: function(){}
     };
 //  event : loadSuccess(e,data), loadError(e, data), cellSelected(e, item, rowIndex, colIndex)
 //          rowInserted(e,item, rowIndex), rowUpdated(e, oldItem, newItem, rowIndex), rowRemoved(e,item, rowIndex)

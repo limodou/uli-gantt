@@ -43,14 +43,17 @@
                 $el.find('ul.pageList, div.limit').hide();
             }
                 
-            scrolling(this.$mmGrid.$bodyWrapper[0], function(){
-                if (!opts.infinite) return;
-                var top = that.$mmGrid.$bodyWrapper.scrollTop();
-                var last = that.$lastScrollX;
-                that.$lastScrollX = top;
-                if (last < top)
-                    that._check_visible();
-            });
+            if (window.scrolling)
+            {
+                scrolling(this.$mmGrid.$bodyWrapper[0], function(){
+                    if (!opts.infinite) return;
+                    var top = that.$mmGrid.$bodyWrapper.scrollTop();
+                    var last = that.$lastScrollX;
+                    that.$lastScrollX = top;
+                    if (last < top)
+                        that._check_visible();
+                });
+            }
             
         }
 

@@ -283,6 +283,24 @@
             }
             
             /*
+                获得总条数，根据flag的不同，来决定是否返回全部或可见记录
+            */
+            , rows: function(visible){
+                var $body = this.$body;
+                var items = [];
+                var d;
+                var i=0;
+                $.each($body.find('tr'), function(){
+                    if ((visible && $(this).is(":visible")) || !visible){
+                        d = $.data(this,'item');
+                        items.push(d);
+                        i++;
+                    }
+                });
+                return items;
+            }
+            
+            /*
                 获得某个索引的行数据，索引可以是tr元素
             */
             , row: function(index){
@@ -1037,8 +1055,9 @@
             
             /*
                 更新某条记录，只更新对应的字段
+                 exact 用来控制是否只更新对应的列
             */
-            , _update: function(item, index){
+            , _update: function(item, index, exact){
                 var opts = this.opts;
                 var $tbody = this.$body.find('tbody');
                 if(!$.isPlainObject(item)){
@@ -1053,6 +1072,7 @@
                 var data = this.row($tr);
                 $.extend(data, item);
                 
+                if (exact) data = item;
                 $.each(data, function(key, value){
                     for(var colIndex=0; colIndex < that.$columns.length; colIndex++){
                         var col = that.$columns[colIndex];
@@ -1085,8 +1105,8 @@
                 return data;
             }
 
-            , update: function(item, index){
-                var data = this._update(item, index);
+            , update: function(item, index, exact){
+                var data = this._update(item, index, exact);
                 var $tr = this._get_item(index);
                 if (data)
                     this._trigger($tr, 'updated', data);
@@ -1452,6 +1472,18 @@
                 
                 this.updateStyle(node, undefined, true);
             }
+            
+            /*
+             * 单元格编辑器更新后的处理
+             */
+            , onEditorCallback: function(row, col, value){
+//                var data = $.data(row, 'item');
+//                data[col.name] = value;
+                var d = {};
+                d[col.name] = value;
+                this.update(d, row, true);
+            }
+
             
         } // end of methods
         

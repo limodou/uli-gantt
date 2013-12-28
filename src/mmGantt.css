@@ -1,0 +1,189 @@
+/*basic*/
+.gantt .gantgrid {height:300px;}
+.gantt .panel{margin-top:0px; margin-bottom:0px;}
+.gantt .panel-body{border:0}
+.gantt .layout-split-west{border-right:5px solid #eee}
+.gantt .mmGrid .mmg-bodyWrapper {overflow-x:scroll;overflow-y:auto}
+.gantt .gantttree-panel .mmGrid .mmg-bodyWrapper {overflow-y:hidden;}
+.gantt .datagrid-view2 .datagrid-body{overflow-x:scroll}
+.gantt .gantttree-panel .datagrid-view2 .datagrid-body{overflow-y:hidden}
+.gantt .navigation{float:right;padding-right:100px;padding-top:10px}
+.gantt .gantt-today-marker{position:absolute;top:0;border-right:1px solid #fff;border-left:1px solid #f00;width:0px;height:100%;}
+.gantt .gantt-today-marker div{width:26px;padding:2px;color:#fff;background-color:red}
+.grantt-toolbar {margin-bottom:5px;}
+
+/*grid*/
+.gantt .datagrid-row{height:24px;}
+.gantt .datagrid-sort-icon{display:none}
+.gantt .datagrid-header-row{height:31px;}
+.gantt tr.datagrid-header-row td{border-right:0px;background:url('../img/fullmonitor/gridline.gif') repeat-y right top}
+.gantt tr.datagrid-header-row .day-header{margin:-5px -4px;}
+.gantt tr.datagrid-header-row .day-header-one{margin-bottom:-5px;padding-top:2px;float:left;width:24px;height:28px;text-align:center;background:url('../img/fullmonitor/gridline.gif') repeat-y right top}
+.gantt tr.datagrid-row td{border-right:0px;background:url('../img/fullmonitor/gridline.gif') repeat-y right top}
+.gantt.gantt-scale-day .gantttree-panel tr.datagrid-row td{background:url('img/fullmonitor/gridline.gif') repeat-y right top}
+.gantt.gantt-scale-day tr.datagrid-row td{background:url('../img/fullmonitor/gridbox.gif') repeat-x;border:0px}
+.gantt.gantt-scale-day .ganttgrid-panel .datagrid-row{height:24px;}
+.gantt.gantt-scale-day .gantttree-panel .datagrid-row{height:24px;background-image:url(../img/fullmonitor/gridhline.gif);background-repeat:repeat-x;}
+.gantt.gantt-scale-day .gantttree-panel tr.datagrid-row td{background:url('../img/fullmonitor/gridline.gif') repeat-y right top;border:0px}
+
+.gantt.gantt-scale-week .gantttree-panel tr.datagrid-row td{background:url('img/fullmonitor/gridline.gif') repeat-y right top}
+.gantt.gantt-scale-week tr.datagrid-row td{background:url('../img/fullmonitor/gridbox.gif') repeat-x;border:0px}
+.gantt.gantt-scale-week .ganttgrid-panel .datagrid-row{height:24px;}
+.gantt.gantt-scale-week .gantttree-panel .datagrid-row{height:24px;background-image:url(../img/fullmonitor/gridhline.gif);background-repeat:repeat-x;}
+.gantt.gantt-scale-week .gantttree-panel tr.datagrid-row td{background:url('../img/fullmonitor/gridline.gif') repeat-y right top;border:0px}
+
+
+/*theme*/
+.node.exists {stroke-width:1;stoke:red;}
+.ganttBar {fill: #33b5e5;}
+.ganttBar:hover {fill: #0D15CF;}
+.milestone {fill: #33b5e5;}
+.milestone:hover {fill: #0D15CF;}
+.grid .tick {
+    stroke: lightgrey;
+    opacity: 0.7;
+}
+.grid line {
+      stroke-width: 0.5;
+}
+
+
+.gantt .ganttBarDiv {display:block;position:relative;height:20px;}
+.gantt .ganttBar {display:block;background-color:#00B0F0;border:0x solid #c00;height:18px;margin:0px -4px;position:absolute}
+.gantt .ganttBar.gantt-center{width:50px;}
+.gantt .ganttBar.gantt-single{margin-left:-2px;width:44px;-webkit-border-radius: 4px;-moz-border-radius:4px;border-radius:4px;}
+.gantt .ganttBar.gantt-begin{margin-left:-2px;width:48px;-webkit-border-radius: 4px 0 0 4px;-moz-border-radius: 4px 0 0 4px;border-radius: 4px 0 0 4px;}
+.gantt .ganttBar.gantt-end{width:45px;-webkit-border-radius: 0px 4px 4px 0;-moz-border-radius: 0px 4px 4px 0;border-radius: 0px 4px 4px 0;}
+
+.gantt .ganttGreen {background-color:#46F828}
+.gantt .ganttBlue {background-color:#00B0F0}
+.gantt .ganttRed {background-color:#FF0000}
+.gantt .ganttYellow {background-color:#F7F700}
+
+.gantt .gantt-center{border-right:0px;border-left:0px;}
+.gantt .gantt-begin{border-right:0px;}
+.gantt .gantt-end{border-left:0px;}
+
+.gantt .ganttBar.gantt-single.day{margin-left:-2px;width:24px;}
+.gantt .ganttBar.gantt-end.day{margin-right:-2px;width:26px;}
+
+.gantt .ganttBar.gantt-center.month3div{width:30px;}
+.gantt .ganttBar.gantt-single.month3div{margin-left:-2px;width:24px;}
+.gantt .ganttBar.gantt-end.month3div{margin-right:-2px;width:26px;}
+
+.gantt .ganttBar.gantt-center.month2div{width:30px;}
+.gantt .ganttBar.gantt-single.month2div{margin-left:-2px;width:24px;}
+.gantt .ganttBar.gantt-end.month2div{margin-right:-2px;width:26px;}
+
+.gantt .ganttBar2 {display:block;border:0x solid #c00;height:4px;margin:5px -4px 0 -4px;position:absolute;border-bottom:1px solid black}
+.gantt .ganttBar2.gantt-center{width:50px;}
+.gantt .ganttBar2.gantt-single{margin-left:1px;width:39px;}
+.gantt .ganttBar2.gantt-begin{margin-left:1px;width:46px;}
+.gantt .ganttBar2.gantt-end{width:43px;}
+
+.gantt .ganttBar2.gantt-begin .gantt-start-mark{border-left:2px solid #000;height:8px;}
+.gantt .ganttBar2.gantt-single .gantt-start-mark{border-left:2px solid #000;height:8px;}
+.gantt .ganttBar2.gantt-single .gantt-stop-mark{float:right;border-left:2px solid #000;height:8px;margin-top:-8px}
+.gantt .ganttBar2.gantt-end .gantt-stop-mark{float:right;border-left:2px solid #000;height:8px;}
+
+.gantt .ganttBar2.gantt-single.day{margin-left:-2px;width:24px;}
+.gantt .ganttBar2.gantt-end.day{margin-right:-2px;width:26px;}
+
+.gantt .ganttBar2.gantt-center.month3div{width:30px;}
+.gantt .ganttBar2.gantt-single.month3div{margin-left:-2px;width:24px;}
+.gantt .ganttBar2.gantt-end.month3div{margin-right:-2px;width:26px;}
+
+.gantt .ganttBar2.gantt-center.month2div{width:30px;}
+.gantt .ganttBar2.gantt-single.month2div{margin-left:-2px;width:24px;}
+.gantt .ganttBar2.gantt-end.month2div{margin-right:-2px;width:26px;}
+
+
+.gantt .layout-panel-south .layout-body{background-color:#eee}
+
+/*icons*/
+.gantt .mmGrid .tree-req, .tree-req{background-image:url(../img/fullmonitor/icons/req.png); background-position:0 0}
+.gantt .mmGrid .tree-project, .tree-project{background-image:url(../img/fullmonitor/icons/assm.png); background-position:0 0}
+.gantt .mmGrid .tree-phase, .tree-phase{background-image:url(../img/fullmonitor/icons/mtask.png); background-position:0 0}
+.gantt .mmGrid .tree-craft, .tree-craft{background-image:url(../img/fullmonitor/icons/stask.png); background-position:0 0}
+
+
+.gantt .mmGrid .mmg-headWrapper {border-top:0}
+.gantt .mmGrid {font-size:12px;}
+.gantt .mmGrid tr td a.expander{top:3px;}
+
+.gantt .mmGrid tr.collapsed td a.expander {
+  background:url('img/tree_icons.png') no-repeat 0px 0px;
+}
+
+.gantt .mmGrid tr.expanded td a.expander {
+  background:url('img/tree_icons.png') no-repeat -18px 0px;
+}
+
+.gantt .mmGrid .tree-icon {
+  position: absolute;
+  left:0px;
+  top:3px;
+  width:16px;
+  height:16px;
+  vertical-align: middle;
+  overflow: hidden;
+  border:0px solid red;
+}
+
+.gantt .mmGrid .mmgantt-date-cell{
+    float:left;
+    text-align:center;
+    font-weight:normal;
+    width: 26px;
+    background: url('img/gridline.gif') repeat-y right top;
+}
+
+.gantt .mmgantt-date-row{
+    height:26px;
+    border-bottom:1px solid #ccc;
+}
+
+.gantt td{height:24px;}
+.ganttgrid-panel .mmGrid .mmg-headWrapper .mmg-head th{padding:0px;}
+.ganttgrid-panel .mmGrid .mmg-bodyWrapper .mmg-body td{
+    padding:0px 5px;
+    background: url('img/gridbox.gif') repeat-x 0 2px;
+}
+
+.mmGrid .tree-folder {
+  background: url('img/tree_icons.png') no-repeat -208px 0;
+}
+.mmGrid .tree-folder-open {
+  background: url('img/tree_icons.png') no-repeat -224px 0;
+}
+.mmGrid .tree-file {
+  background: url('img/tree_icons.png') no-repeat -240px 0;
+}
+
+.gantt.gantt-scale-week .mmg-head th .mmg-headWrapper{height:80px;line-height:80px;}
+.gantt.gantt-scale-week .mmg-head th .mmg-headWrapper .mmg-title{height:80px;}
+.gantt.gantt-scale-week .mmg-head th .mmg-titleWrapper{height:80px;line-height:80px;}
+.gantt.gantt-scale-week .mmg-head th .mmg-titleWrapper .mmg-title{height:80px;}
+.gantt.gantt-scale-day .mmg-head th .mmg-headWrapper{height:80px;line-height:80px;}
+.gantt.gantt-scale-day .mmg-head th .mmg-headWrapper .mmg-title{height:80px;}
+.gantt.gantt-scale-day .mmg-head th .mmg-titleWrapper{height:80px;line-height:80px;}
+.gantt.gantt-scale-day .mmg-head th .mmg-titleWrapper .mmg-title{height:80px;}
+.gantt.gantt-scale-month .mmg-head th .mmg-headWrapper{height:55px;line-height:55px;}
+.gantt.gantt-scale-month .mmg-head th .mmg-headWrapper .mmg-title{height:55px;}
+.gantt.gantt-scale-month .mmg-head th .mmg-titleWrapper{height:55px;line-height:55px;}
+.gantt.gantt-scale-month .mmg-head th .mmg-titleWrapper .mmg-title{height:55px;}
+.gantt.gantt-scale-month2div .mmg-head th .mmg-headWrapper{height:80px;line-height:80px;}
+.gantt.gantt-scale-month2div .mmg-head th .mmg-headWrapper .mmg-title{height:80px;}
+.gantt.gantt-scale-month2div .mmg-head th .mmg-titleWrapper{height:80px;line-height:80px;}
+.gantt.gantt-scale-month2div .mmg-head th .mmg-titleWrapper .mmg-title{height:80px;}
+.gantt.gantt-scale-month3div .mmg-head th .mmg-headWrapper{height:80px;line-height:80px;}
+.gantt.gantt-scale-month3div .mmg-head th .mmg-headWrapper .mmg-title{height:80px;}
+.gantt.gantt-scale-month3div .mmg-head th .mmg-titleWrapper{height:80px;line-height:80px;}
+.gantt.gantt-scale-month3div .mmg-head th .mmg-titleWrapper .mmg-title{height:80px;}
+
+
+.gantt .gantttree-panel .mmg-titleWrapper{text-align:center;}
+.gantt .mmg-title{font-weight:normal;}
+.gantt.gantt-scale-day .gantttree-panel .mmg-title{font-weight:normal;padding-top:25px;}
+.gantt.gantt-scale-week .gantttree-panel .mmg-title{font-weight:normal;padding-top:25px;}
+.gantt.gantt-scale-month .gantttree-panel .mmg-title{font-weight:normal;padding-top:20px;}
