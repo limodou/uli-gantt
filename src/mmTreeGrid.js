@@ -187,6 +187,9 @@
                     else
                         parent.after($($tr));
                     
+                    //设置父结点的loaded状态为true，表示已经做过expand的处理
+                    parent.data('loaded', true);
+                    
                     this._updateIndex();
                     this._trigger($tr, 'added', item);
                     
@@ -367,10 +370,10 @@
                     para.push(this.getKey(nodes[i]));
                 }
                 
-                function f(data, is_direct){
+                function f(d, is_direct){
                     if (!is_direct){
-                        for(var i=0; i<data.length; i++){
-                            var n = $self.findItem(data[i]);
+                        for(var i=0; i<d.length; i++){
+                            var n = $self.findItem(d[i]);
                             $self._remove(n);
                         }
                     }else{
@@ -899,11 +902,10 @@
                     x = parseInt(cur.attr('level'));
                     if(level == x){
                         return cur;
-                    }else if (!samelevel){
-                        if (x < level){
-                            return cur;
-                        }
-
+                    }else if (x < level){
+                        if(samelevel) return;
+                        return cur;
+                    }else{
                         cur = $(cur).next();
                     }
                 }
@@ -1340,6 +1342,8 @@
                 var data = this.row(node);
                 var children = this.getChildren(node);
                 var parent = this.getParent(node);
+                //记录旧的_isParent值，用来比较新值，以便可以发出updated事件
+                var old_is_parent = data._isParent;
                 
                 if (expandable || expandable === undefined)
                     expand = 'expanded'
@@ -1363,9 +1367,11 @@
                     }
                     
                     //如果当前结点的数据中有_isParent或子结点数>0，则添加parent信息
-                    if(data._isParent || children.length > 0) {
+                    if((data._isParent && !node.data('loaded') && children.length==0) || children.length > 0) {
+                        data._isParent = true;
                         node.addClass("parent");
                     }else{
+                        data._isParent = false;
                         node.removeClass('parent');
                         cell.find('a.expander').remove();
                     }
@@ -1419,6 +1425,10 @@
                     }
 
                     a.css('left', padding-16);
+                    
+                    if (old_is_parent !== data._isParent)
+                        $self._trigger(node, 'updated', data);
+                    
                 }
             }
             /*

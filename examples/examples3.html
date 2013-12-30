@@ -127,7 +127,7 @@
                     , gantt: {
                         data:[]
                         , scale:"week"
-                        , toolbar: '#gantttoolbar'
+                        , titleName:'name'
                         }
                     }
                 );
@@ -236,7 +236,7 @@
                 //监控事件
                 var events = ['delete', 'deleted', 'add', 'added', 'error',
                     'expand', 'expanded', 'collapse', 'collapsed', 'indent',
-                    'indented', 'unindent', 'unindented']
+                    'indented', 'unindent', 'unindented', 'updated']
                 for(var i=0; i<events.length; i++){
                     grid.on(events[i], function(e, data){
                         log_msg(e, data);

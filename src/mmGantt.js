@@ -738,6 +738,15 @@
                 convert_date(x, opts);
                 x['id'] = d.id
                 x['title'] = d[opts.titleName]
+                
+                if (opts.group){
+                    if ($.isFunction(opts.group))
+                        x['group'] = opts.group(d);
+                    else
+                        x['group'] = d[opts.group];
+                }else
+                    x['group'] = false;
+                    
                 if (opts.type){
                     if ($.isFunction(opts.type))
                         x['type'] = opts.type(d);
@@ -748,6 +757,7 @@
                 if (opts.color)
                     x[color] = opts.color(d);
                 data.push(x);
+                
             });
             return data;
         }
@@ -962,6 +972,7 @@
                             //如： function(d){'1'?d.type=='1':'2'}
             , color: null   //可以在gantt上显示不同的颜色的class,它是一个回调函数，如：
                             //function(d){'red'?d.status=='error':'green'}
+            , group: null   //用来标记是否是group元素，可以是一个函数
         }
     }
     
