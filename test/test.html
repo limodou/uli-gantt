@@ -1,0 +1,50 @@
+<!doctype html>
+<html>
+<meta http-equiv="Content-type" content="text/html; charset=utf-8" />
+<head>
+  <title>Hello World</title>
+  <script type="text/javascript" src="../src/d3.min.js"></script>
+  <style>
+  .exists{fill:green;}
+  .new{fill:red;}
+  .remove{fill:gray;}
+  </style>
+</head>
+<body>
+<script>
+    var svg = d3.select('body').append('svg')
+        .attr('width', 600)
+        .attr('height', 400);
+        
+    var data = [
+        {id:1, type:'2', value:30},
+        {id:2, type:'1', value:90},
+        {id:3, type:'2', value:150}
+    ];
+    
+    function draw(data){
+        var nodes = svg.selectAll('circle').data(data, function(d){
+        console.log(d);
+            return d.id+','+d.type;});
+        
+        nodes
+            .attr('class', 'exists')
+            .attr('cx', function(d){return d.value;})
+            .attr('r', 0)
+            .transition().duration(1000).
+                attr('r', 15);
+            
+        nodes.enter().append('circle')
+            .attr('cx', function(d){return d.value;})
+            .attr('cy', 90)
+            .attr('r', 15)
+            .attr('class', 'new')
+            
+        nodes.exit()
+            .attr('class', 'remove')
+    }
+    
+    draw(data);
+</script>
+</body>
+</html>

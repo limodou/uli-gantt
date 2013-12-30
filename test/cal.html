@@ -1,0 +1,47 @@
+<!doctype html>
+<html>
+<head>
+<title>Test</title>
+<style>
+line {stroke-width:1px;
+stroke:#999;}
+</style>
+<script src="../src/d3.min.js"></script>
+</head>
+<body>
+<script>
+var svg = d3.select('body').append('svg');
+function draw(w, h, d, x1, y1){
+    x1 = x1 || 0;
+    y1 = y1 || 0;
+    var x = d3.scale.linear().domain([0, w/d]);
+
+    svg.attr('width', w)
+        .attr('height', h);
+
+    var nodes = svg.selectAll('line.xline')
+        .data(x.ticks(w/d));
+
+    nodes
+        .attr('x1', function(i){return i*d+0.5+x1;})
+        .attr('y1', y1)
+        .attr('x2', function(i){return i*d+0.5+x1;})
+        .attr('y2', h+y1);
+
+    //draw y line
+    nodes.enter()
+        .append('line')
+        .attr('class', 'xline')
+        .attr('x1', function(i){return i*d+0.5+x1;})
+        .attr('y1', y1)
+        .attr('x2', function(i){return i*d+0.5+x1;})
+        .attr('y2', h+y1);
+
+    nodes.exit().remove();
+
+}
+
+draw(200, 200, 24);
+</script>
+</body>
+</html>
