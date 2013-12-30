@@ -39,12 +39,10 @@
 .ganttBar:hover {fill: #0D15CF;}
 .milestone {fill: #33b5e5;}
 .milestone:hover {fill: #0D15CF;}
-.grid .tick {
+line.xline {
     stroke: lightgrey;
     opacity: 0.7;
-}
-.grid line {
-      stroke-width: 0.5;
+    stroke-width: 1px;
 }
 
 
@@ -136,10 +134,11 @@
     font-weight:normal;
     width: 26px;
     background: url('img/gridline.gif') repeat-y right top;
+    height:28px;
 }
 
 .gantt .mmgantt-date-row{
-    height:26px;
+    height:28px;
     border-bottom:1px solid #ccc;
 }
 
