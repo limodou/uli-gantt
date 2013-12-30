@@ -392,7 +392,7 @@
         this.grid = this.grid_panel.find('table');
         this.gantt = this.gantt_panel.find('table');
         this.cellWidth = 24;
-        this.barHeight = 15;
+        this.barHeight = 16;
         
         element.splitter({
                 type: "v",
@@ -559,13 +559,19 @@
             var top = (h - this.barHeight)/2;
             var top_diamond = (h - 12)/2;
             
+            //画父阶段需要的变量
+            var bar_h = this.barHeight; //总高度
+            var group_h = 9;            //小三角的起始位置
+            var d_h = bar_h-group_h;    //小三角的直角边长
+            
             this.drawGrid(this.cellWidth);
 
-            //处理结点变化
+            //处理结点update
+            //data 的key为id+类型+是否父结点
             var bar = this.draw.selectAll("g.node")
                 .data(data, function(d, i){
                     that._cal_pos(d);
-                    return d.id+','+d.type;
+                    return d.id+','+d.type+','+d.group;
                 });
                 
             //更新
@@ -577,10 +583,21 @@
                 
                 //如果是阶段
                 if (d.type == '1'){
-                    t.selectAll("rect")
-                        .transition()
-                        .attr("width", d.width)
-                        .duration(300)
+                    if (!d.group){
+                        t.selectAll("rect")
+                            .transition()
+                            .attr("width", d.width)
+                            .duration(300);
+                    }else{
+                        t.selectAll("rect")
+                            .transition()
+                            .attr("width", d.width)
+                            .duration(300);
+                        t.selectAll("path.right-angle")
+                            .transition()
+                            .attr("d", ['M', d.width, group_h, 'l', 0, d_h, 'l', -d_h, -d_h, 'z'].join(" "))
+                            .duration(300);
+                    }
                 }else{
                     t.selectAll("text")
                         .text(d.end_date);
@@ -611,13 +628,30 @@
                     .attr("dy", ".35em")
                     .text(function(d) {return d.end_date;});
 
-            //添加阶段
-            nodes.filter(function(d){return d.type=='1';})
+            //添加普通阶段
+            nodes.filter(function(d){return d.type=='1' && !d.group;})
                 .append('rect')
                     .attr("width", function(d){ return d.width;})
                     .attr("height", this.barHeight)
                     .attr("rx", 3).attr("ry", 3).attr('class', 'ganttBar');
                     
+            //添加父阶段
+            var phrase = nodes.filter(function(d){return d.type=='1' && d.group;});
+            
+            phrase
+                .append('rect')
+                    .attr("width", function(d){ return d.width;})
+                    .attr("height", group_h+1);
+            phrase
+                .append('path')
+                .attr('d', ['M', 0, group_h, 'l', 0, d_h, 'l', d_h, -d_h, 'z'].join(" "))
+                .attr('class', 'left-angle');
+                
+            phrase
+                .append('path')
+                .attr('d', function(d){return ['M', d.width, group_h, 'l', 0, d_h, 'l', -d_h, -d_h, 'z'].join(" ");})
+                .attr('class', 'right-angle');
+            
             //删除
             bar.exit().remove();
         }
@@ -734,6 +768,7 @@
                 x['begin_date'] = d[opts.planBeginDateName];
                 x['end_date'] = d[opts.planEndDateName];
                 x['finish_begin_date'] = d[opts.realBeginDateName];
+                x['finish_percent'] = d[opts.finishPercentName],
                 x['finish_end_date'] = d[opts.realEndDateName];
                 convert_date(x, opts);
                 x['id'] = d.id
@@ -758,6 +793,7 @@
                     x[color] = opts.color(d);
                 data.push(x);
                 
+                console.log(x);
             });
             return data;
         }
@@ -965,6 +1001,7 @@
             , planEndDateName: 'end_date'
             , realBeginDateName: 'finish_begin_date'
             , realEndDateName: 'finish_end_date'
+            , finishPercentName: 'percent'
             , titleName: 'title'
             , type: 'type'  //区分是否阶段还是里程碑，对于里程碑，只需要结束时间
                             //它的取值分别为 '1'阶段,'2'里程碑

@@ -77,10 +77,10 @@
                     {name:'需求阶段', 'begin_date':'2013-1-5', 'end_date':'2013-2-1', 'pre_task':'', type:'1', id:1}
                     , {name:'需求分析', 'begin_date':'2013-1-5', 'end_date':'2013-1-20', 'pre_task':'', type:'1', _parent:1, id:2}
                     , {name:'需求分析评审', 'begin_date':'2013-1-21', 'end_date':'2013-2-1', 'pre_task':'', type:'2', _parent:1, id:3}
-                    , {name:'开发阶段', 'begin_date':'2013-1-5', 'end_date':'2013-2-1', 'pre_task':'', type:'1', id:4}
-                    , {name:'概要设计', 'begin_date':'2013-1-5', 'end_date':'2013-2-1', 'pre_task':'', type:'1', _parent:4, id:5}
-                    , {name:'详细设计', 'begin_date':'2013-1-5', 'end_date':'2013-2-1', 'pre_task':'', type:'1', _parent:4, id:6}
-                    , {name:'开发', 'begin_date':'2013-1-5', 'end_date':'2013-2-1', 'pre_task':'', type:'1', _parent:4, id:7}
+                    , {name:'开发阶段', 'begin_date':'2013-2-5', 'end_date':'2013-5-30', 'pre_task':'', type:'1', id:4}
+                    , {name:'概要设计', 'begin_date':'2013-2-5', 'end_date':'2013-2-20', 'pre_task':'', type:'1', _parent:4, id:5}
+                    , {name:'详细设计', 'begin_date':'2013-2-21', 'end_date':'2013-3-10', 'pre_task':'', type:'1', _parent:4, id:6}
+                    , {name:'开发', 'begin_date':'2013-3-11', 'end_date':'2013-4-20', 'pre_task':'', type:'1', _parent:4, id:7}
                     , {name:'编码', 'begin_date':'2013-1-5', 'end_date':'2013-2-1', 'pre_task':'', type:'1', _parent:7, id:8}
                     , {name:'单元测试', 'begin_date':'2013-1-5', 'end_date':'2013-2-1', 'pre_task':'', type:'1', _parent:7, id:9}
                 ]
@@ -128,6 +128,7 @@
                         data:[]
                         , scale:"week"
                         , titleName:'name'
+                        , group: function(d){return d._isParent;}
                         }
                     }
                 );
