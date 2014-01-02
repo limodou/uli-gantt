@@ -492,9 +492,14 @@
                 var x = b.margin + b.width;
                 var y = from * h + h/2;
                 var y2 = to * h + 0.5;   //任务2起始纵坐标
+                var e_begin;
                 //如果上个任务结束时间小于下个任务，则直接画线
                 //todo 是否考虑下个任务的开始时间可以向前几天？
-                if (b.endTime < e.beginTime){
+                if (e.type == '1')
+                    e_begin = e.beginTime;
+                else
+                    e_begin = e.endTime;
+                if (b.endTime < e_begin){
                     s = ['M', x, y, 'H', e.margin-0.5, 'V', y2+top-3];
                 }else {
                     s = ['M', x, y, 'h', 2.5, 'V', y2, 'L', e.margin-6.5, y2, 'L', e.margin-6.5, to*h+top+that.barHeight/2-0.5];
@@ -508,8 +513,14 @@
                 var e = that.ganttData[to];
                 var top = (h - that.barHeight)/2;
                 var y2 = to * h ;   //任务2起始纵坐标
+                var e_begin;
 
-                if (b.endTime < e.beginTime){
+                if (e.type == '1')
+                    e_begin = e.beginTime;
+                else
+                    e_begin = e.endTime;
+                
+                if (b.endTime < e_begin){
                     s = ['M', e.margin-0.5, y2+top-3, 'h', 3, 'l', -3, 3, 'l', -3, -3, 'h', 3];
                 }else{
                     s = ['M', e.margin-6.5, to*h+top+that.barHeight/2, 
