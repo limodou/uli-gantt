@@ -471,8 +471,86 @@
 
         }
 
+        /*
+         * 画任务之间的线
+         * 格式为 [(from, to), ...]
+         * 其中from为起始任务的序号-1， to为结束任务的序号-1
+         * h 为每行的高度
+         */
+        , drawLines: function(h){
+            console.log(this.depends);
+            var that = this;
+            var top = (h - that.barHeight)/2;
+            
+            var lines = this.draw.selectAll('g.lines')
+                .data(this.depends, function(d){return d[0]+','+d[1];});
+                
+            function _line(from, to){
+                var s;
+                var b = that.ganttData[from];
+                var e = that.ganttData[to];
+                var x = b.margin + b.width;
+                var y = from * h + h/2;
+                var y2 = to * h + 0.5;   //任务2起始纵坐标
+                //如果上个任务结束时间小于下个任务，则直接画线
+                //todo 是否考虑下个任务的开始时间可以向前几天？
+                if (b.endTime < e.beginTime){
+                    s = ['M', x, y, 'H', e.margin-0.5, 'V', y2+top-3];
+                }else {
+                    s = ['M', x, y, 'h', 2.5, 'V', y2, 'L', e.margin-6.5, y2, 'L', e.margin-6.5, to*h+top+that.barHeight/2-0.5];
+                }
+                return s.join(" ");
+            }
+            
+            function _triangle(from, to){
+                var s;
+                var b = that.ganttData[from];
+                var e = that.ganttData[to];
+                var top = (h - that.barHeight)/2;
+                var y2 = to * h ;   //任务2起始纵坐标
+
+                if (b.endTime < e.beginTime){
+                    s = ['M', e.margin-0.5, y2+top-3, 'h', 3, 'l', -3, 3, 'l', -3, -3, 'h', 3];
+                }else{
+                    s = ['M', e.margin-6.5, to*h+top+that.barHeight/2, 
+                        'h', 3, 'v', -3, 'l', 3, 3, 'l', -3, 3, 'v', -3];
+                }
+                return s.join(" ");
+            }
+            
+            var gs = lines.enter().append('g')
+                .attr('class', 'lines');
+                
+            lines.each(function(d, i) {
+                var t = d3.select(this);
+                t.selectAll(".line")
+                    .transition()
+                    .attr("d", function(d){return _line(d[0], d[1]);})
+                    .duration(300);
+                t.selectAll(".triangle")
+                    .transition()
+                    .attr("d", function(d){return _triangle(d[0], d[1]);})
+                    .duration(300);
+            });
+            
+            //画线
+            gs.append('path')
+                .attr('class', 'line')
+                .attr('d', function(d){return _line(d[0], d[1]);});
+                
+            //画三角
+            gs.append('path')
+                .attr('class', 'triangle')
+                .attr('d', function(d){return _triangle(d[0], d[1]);});
+                
+            lines.exit()
+                .remove();
+        }
         , redrawGantt: function(){
             this.grid.trigger('resize');
+            
+            //下一步很重要，重新绑定draw对象，在initGanttGrid中的处理对闭包无效
+            //感觉redrawGantt是在事件中调用的，所以this还是旧的
             this.draw = d3.select(this.gantt_panel.find('svg')[0]);
             this.draw
                 .attr('width', parseInt(this.gantt.get(0).style.width))
@@ -603,6 +681,9 @@
             
             //删除
             bar.exit().remove();
+            
+            //画线
+            this.drawLines(h);
         }
         
         , appendRows: function(childData, parentId) {
@@ -757,7 +838,7 @@
                     for(var i=0; i<de_ids.split(',').length; i++){
                         var k = parseInt(de_ids[i]);
                         if (k && k>0 && k<=source.length){
-                            depends.push([k, d.id]);
+                            depends.push([k-1, data.length]);
                         }
                     }
                 }
