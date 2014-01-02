@@ -34,10 +34,15 @@
 
 
 /*theme*/
-.node.exists {stroke-width:1;stoke:red;}
-.ganttBar {fill: #33b5e5;}
+.ganttBar {fill: #33b5e5;opacity: 0.7;}
+.ganttBar.red {fill: #f00;opacity: 0.7;}
+.ganttBar.green {fill: #0f0;opacity: 0.7;}
+.ganttBar {fill: #33b5e5;opacity: 0.7;}
 .ganttBar:hover {fill: #0D15CF;}
+.finish-ganttBar {fill:#666;}
 .milestone {fill: #33b5e5;}
+.milestone.red {fill: #f00;}
+.milestone.green {fill: #0f0;}
 .milestone:hover {fill: #0D15CF;}
 line.xline {
     stroke: lightgrey;

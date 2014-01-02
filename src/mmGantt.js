@@ -18,31 +18,6 @@
         cellWidth:24
     };
     
-    function convert_date(data, opts){
-        data.beginTime = tools.dateDeserialize(data[opts.planBeginDateName]);
-        data.endTime = tools.dateDeserialize(data[opts.planEndDateName]);
-        if (data[opts.realBeginDateName]) {
-            data.startTime = tools.dateDeserialize(data[opts.realBeginDateName]);
-        }
-        if (data[opts.realBeginDateName]) {
-            data.doneTime = tools.dateDeserialize(data[opts.realBeginDateName]);
-        }
-    }
-    
-    var formatter = {
-        
-    
-            
-        dateFormatter: function(value, obj) {
-            return tools.formatDate(value);
-        },
-        
-        statusFormatter: function(value, obj) {
-            return "<div style='weight:bold;color:"+obj.desc_color+"'>"+value+"</div>"
-        }
-    
-    };
-    
     var tools = {
     
         getDayOfYear : function (date) {
@@ -127,30 +102,6 @@
             month = month + (end.getMonth() - current.getMonth());
             return month
         },
-
-        betweenMonths2: function(from, to) {
-            var month = tools.betweenMonths(from, to)*2+1;
-            
-            var whichPart = function(date) {
-                var day = date.getDate();
-                if(day>=1&&day<=15) { return 0 }
-                if(day>=16) { return 1 }
-            }
-            return month - (1-whichPart(to)) - whichPart(from);
-        },
-
-        betweenMonths3: function(from, to) {
-            var month = tools.betweenMonths(from, to)*3 + 2;
-            
-            var whichPart = function(date) {
-                var day = date.getDate();
-                if(day>=1&&day<=10) { return 0 }
-                if(day>=11&&day<=20) { return 1 }
-                if(day>=21) { return 2 }
-            }
-            
-            return month - (2-whichPart(to)) - whichPart(from)
-        },
         
         parseMonthsRange: function (from, to) {
             var current = new Date(from);
@@ -188,18 +139,6 @@
                 current.setDate(current.getDate() + 1);
             } while (current.getTime() <= end.getTime());
             return ret;
-        },
-        
-        getTreeColumns: function(scale) {
-            var treeColumns = [
-                {'title':"&nbsp;", 'name': settings.treeField, 'width': settings.treePanelWidth-60, optionTitle:'项目名称', lockDisplay:true},
-                {'title':"状态", 'name':'desc', renderer:formatter.statusFormatter, 'width':60 ,lockWidth:true},
-                {'title':"计划开始时间",'name': 'beginTime', renderer: formatter.dateFormatter, 'width': 100},
-                {'title':"计划结束时间", 'name': 'endTime', renderer: formatter.dateFormatter, 'width': 100},
-                {'title':"实际开始时间", 'name': 'startTime', renderer: formatter.dateFormatter, 'width': 100},
-                {'title':"实际结束时间", 'name': 'doneTime', renderer: formatter.dateFormatter, 'width': 100}
-            ];
-            return treeColumns;
         },
         
         getGanttColumns: function(startDate, endDate, scale) {
@@ -319,34 +258,13 @@
                     }
                     monthsInYear++;
                     var label = settings.months[rday.getMonth()];
-                    if( scale == "month3div") {
-                        monthArr.push(getOneCell('month', cellWidth*3 , label)); 
-                        month3DivArr.push(getOneCell('month3', cellWidth , '上')); 
-                        month3DivArr.push(getOneCell('month3', cellWidth , '中')); 
-                        month3DivArr.push(getOneCell('month3', cellWidth , '下')); 
-                    } else if ( scale == "month2div") {
-                        monthArr.push(getOneCell('month', cellWidth*2 , label)); 
-                        month3DivArr.push(getOneCell('month3', cellWidth , '上')); 
-                        month3DivArr.push(getOneCell('month3', cellWidth , '下')); 
-                    } else {
-                        monthArr.push(getOneCell('month', cellWidth , label)); 
-                    }
+                    monthArr.push(getOneCell('month', cellWidth , label)); 
                 }
-                // Last year
-                if( scale == "month3div") {monthsInYear = monthsInYear * 3}
-                if( scale == "month2div") {monthsInYear = monthsInYear * 2}
                 yearArr.push(getOneCell('year', cellWidth*monthsInYear, year)); 
                 
-                if( scale == "month3div" || scale == "month2div") {
-                    var title = 
-                        "<div class='mmgantt-date-row year'>"+yearArr.join("")+"</div>" +
-                        "<div class='mmgantt-date-row month'>"+monthArr.join("")+"</div>" +
-                        "<div class='mmgantt-date-row month3'>"+month3DivArr.join("")+"</div>";
-                } else {
-                    var title = 
-                        "<div class='mmgantt-date-row year'>"+yearArr.join("")+"</div>" +
-                        "<div class='mmgantt-date-row month'>"+monthArr.join("")+"</div>";
-                }
+                var title = 
+                    "<div class='mmgantt-date-row year'>"+yearArr.join("")+"</div>" +
+                    "<div class='mmgantt-date-row month'>"+monthArr.join("")+"</div>";
             }
             
             return [{
@@ -393,6 +311,13 @@
         this.gantt = this.gantt_panel.find('table');
         this.cellWidth = 24;
         this.barHeight = 16;
+        this.finishBarHeight = 6;
+        
+        this.ganttData = [];    //甘特图数据，为数组
+        this.ganttIds = {};     //甘特图数据的索引，key为id,值为数组的索引
+        this.depends = [];      //任务间的依赖，一个依赖是一条记录，格式为一个数组
+                                //[from, to] from为前置任务
+                                //上面的数据，将在 _process_data() 中进行处理
         
         element.splitter({
                 type: "v",
@@ -454,7 +379,7 @@
             /* 装入grid数据时，同时对日期进行格式化 */
             var expandFilter = function(data, parentId) {
                 for(var i=0; i<data.length; i++) {
-                    convert_date(data[i], that.gantt_opts);
+                    that._convert_date(data[i]);
                     var x = this.getBarInfo(data[i].beginTime, data[i].endTime);
                 }
                 
@@ -466,17 +391,12 @@
             };
             
             var grid_settings = {
-//                cols: tools.getTreeColumns(settings.scale),
                 nowrap: true,
-//                treeColumn: settings.treeField,
                 fitColWidth: true,
-//                idField: 'id',
                 height: '100%',
-//                showIcon: true,
                 expandURL: this.grid_opts.url,
                 expandMethod: 'POST',
                 expandFilter: expandFilter,
-//                showBackboard: false,
                 autoLoad: false,
                 clickableNodeNames: false
             }
@@ -493,17 +413,23 @@
                 'unindented', 'upped', 'collapsed', 'expanded']
             $.each(events, function(index, v){
                 mmgrid.on(v, function(e, data){
-                    that.redrawGantt(e, data);
+                    that.redrawGantt();
                 });
             });
             
         }
-        
         , _cal_pos: function(data){
-            convert_date(data, this.gantt_opts);
-            var x = this.getBarInfo(data.beginTime, data.endTime, data);
+            //计算计划开始，结束时间的：偏移量和宽度
+            var x = this.getBarInfo(data.beginTime, data.endTime);
             data.width = x.width;
             data.margin = x.margin;
+            //计算实际开始，结束时间的：偏移量和宽度
+            var y = this.getBarInfo(data.startTime, data.doneTime);
+            //如果宽度为0，表示没有结束，则使用百分比来计算宽度
+            if (y.width == 0)
+                y.width = x.width * data.finish_percent / 100;
+            data.finish_width = y.width;
+            data.finish_margin = y.margin-x.margin;
         }
         /*
          * 生成一个菱形的path信息
@@ -547,6 +473,7 @@
 
         , redrawGantt: function(){
             this.grid.trigger('resize');
+            this.draw = d3.select(this.gantt_panel.find('svg')[0]);
             this.draw
                 .attr('width', parseInt(this.gantt.get(0).style.width))
                 .attr('height', this.grid.height());
@@ -561,11 +488,11 @@
             
             //画父阶段需要的变量
             var bar_h = this.barHeight; //总高度
-            var group_h = 9;            //小三角的起始位置
+            var group_h = 7;            //小三角的起始位置
             var d_h = bar_h-group_h;    //小三角的直角边长
             
-            this.drawGrid(this.cellWidth);
-
+            var finish_bar_top = (h - this.finishBarHeight)/2 - top; 
+            
             //处理结点update
             //data 的key为id+类型+是否父结点
             var bar = this.draw.selectAll("g.node")
@@ -577,16 +504,22 @@
             //更新
             bar.each(function(d, i) {
                 var t = d3.select(this);
-                t.attr('class', 'node exists')
+                t.attr('class', 'node')
                 t.transition().duration(300)
                     .attr("transform", "translate(" + d.margin + "," + (i * h + top) + ")");
                 
                 //如果是阶段
                 if (d.type == '1'){
                     if (!d.group){
-                        t.selectAll("rect")
+                        t.selectAll("rect.ganttBar")
                             .transition()
                             .attr("width", d.width)
+                            .attr("class", 'ganttBar '+d.color)
+                            .duration(300);
+                        t.selectAll("rect.finish-ganttBar")
+                            .transition()
+                            .attr("width", d.finish_width)
+                            .attr("x", d.finish_margin)
                             .duration(300);
                     }else{
                         t.selectAll("rect")
@@ -601,6 +534,8 @@
                 }else{
                     t.selectAll("text")
                         .text(d.end_date);
+                    t.selectAll("path")
+                        .attr("color", function(d) {return 'milestone '+d.color});
                 }
             })  
             
@@ -617,7 +552,7 @@
             milestones
                 .append('path')
                     .attr("d", function(d){return that._drawDiamond(0, 0, 12, 12);})
-                    .attr("class", "milestone");
+                    .attr("class", function(d) {return 'milestone '+d.color});
                     
             //添加里程碑文字
             //todo 是否有更好的方式和里程碑一起添加？
@@ -629,12 +564,26 @@
                     .text(function(d) {return d.end_date;});
 
             //添加普通阶段
-            nodes.filter(function(d){return d.type=='1' && !d.group;})
+            var normals = nodes.filter(function(d){return d.type=='1' && !d.group;});
+            
+            //添加计划条
+            normals
                 .append('rect')
                     .attr("width", function(d){ return d.width;})
                     .attr("height", this.barHeight)
-                    .attr("rx", 3).attr("ry", 3).attr('class', 'ganttBar');
+                    .attr("rx", 3).attr("ry", 3)
+                    .attr("class", function(d) {return 'ganttBar '+d.color});
                     
+            //添加实际完成条
+            normals
+                .append('rect')
+                    .attr("y", finish_bar_top)
+                    .attr("x", function(d){return d.finish_margin;})
+                    .attr("width", function(d){ return d.finish_width;})
+                    .attr("height", this.finishBarHeight)
+                    .attr("class", 'finish-ganttBar');
+                    
+            
             //添加父阶段
             var phrase = nodes.filter(function(d){return d.type=='1' && d.group;});
             
@@ -731,7 +680,6 @@
          * 当选择了不同的时间维度，可能表头及数据会发生变化
          */
         , initGanttGrid: function() {
-            var that = this;
             var columns = tools.getGanttColumns(this.startDate, this.endDate, this.scale);
             var grid_settings = {
                 cols: columns,
@@ -754,15 +702,20 @@
             this.gantt.mmGrid(settings);
             
             this.gantt.hide();
-            this.gantt2 = $('<div>').appendTo(this.gantt_panel.find('.mmg-bodyWrapper'));
+            this.gantt2 = $('<div>');
+            this.gantt_panel.find('.mmg-bodyWrapper').append(this.gantt2);
             //初始化d3 svg
             this.draw = d3.select(this.gantt2.get(0)).append('svg');
         }
         
         , _process_data: function(source){
             var data = [];
+            var ids = {};
+            var depends = [];
             var x;
             var opts = this.gantt_opts;
+            var that = this;
+            
             $.each(source, function(index, d){
                 x = {};
                 x['begin_date'] = d[opts.planBeginDateName];
@@ -770,9 +723,9 @@
                 x['finish_begin_date'] = d[opts.realBeginDateName];
                 x['finish_percent'] = d[opts.finishPercentName],
                 x['finish_end_date'] = d[opts.realEndDateName];
-                convert_date(x, opts);
-                x['id'] = d.id
-                x['title'] = d[opts.titleName]
+                that._convert_date(x);
+                x['id'] = d.id;
+                x['title'] = d[opts.titleName];
                 
                 if (opts.group){
                     if ($.isFunction(opts.group))
@@ -789,12 +742,34 @@
                         x['type'] = d[opts.type];
                 }else
                     x['type'] = '1';
-                if (opts.color)
-                    x[color] = opts.color(d);
+                if (opts.color){
+                    if ($.isFunction(opts.color))
+                        x['color'] = opts.color(d) || '';
+                    else
+                        x['color'] = d[opts.color];
+                }else
+                    x['color'] = '';
+                
+                //处理依赖
+                var de_ids = d[opts.dependTaskName];
+                if (de_ids){
+                    //k应该是序号，从1开始
+                    for(var i=0; i<de_ids.split(',').length; i++){
+                        var k = parseInt(de_ids[i]);
+                        if (k && k>0 && k<=source.length){
+                            depends.push([k, d.id]);
+                        }
+                    }
+                }
                 data.push(x);
                 
-                console.log(x);
+                ids[data.id] = data.length - 1;
             });
+            
+            this.ganttData = data;
+            this.ganttIds = ids;
+            this.depends = depends;
+            
             return data;
         }
         , loadGanttData: function(data, refresh) {
@@ -802,7 +777,10 @@
             this.draw
                 .attr('width', parseInt(this.gantt.get(0).style.width))
                 .attr('height', this.grid.height());
-            this.drawGrid(this.cellWidth);
+            var w = this.cellWidth;
+            if (this.scale == 'month')
+                w = 2*w;
+            this.drawGrid(w);
             this.drawGantt(data);
             this.addSyncScrollEvent();
         }
@@ -820,6 +798,19 @@
             this.getGanttRange(data);
             this.initGanttGrid();
             this.loadGanttData(data);
+        }
+        
+        , _convert_date: function(data){
+            var opts = this.gantt_opts;
+            
+            data.beginTime = tools.dateDeserialize(data[opts.planBeginDateName]);
+            data.endTime = tools.dateDeserialize(data[opts.planEndDateName]);
+            if (data[opts.realBeginDateName]) {
+                data.startTime = tools.dateDeserialize(data[opts.realBeginDateName]);
+            }
+            if (data[opts.realEndDateName]) {
+                data.doneTime = tools.dateDeserialize(data[opts.realEndDateName]);
+            }
         }
                 
         , getMaxDate: function(data) {
@@ -916,19 +907,13 @@
             if(scale == "month") {
                 betweenFn = tools.betweenMonths;
             }
-            if(scale == "month2div") {
-                betweenFn = tools.betweenMonths2;
-            }
-            if(scale == "month3div") {
-                betweenFn = tools.betweenMonths3;
-            }
     
             if (startDateX && endDateX)
                 barWidth = betweenFn(startDateX, endDateX)*cellWidth+cellWidth-8;
             else
                 barWidth = 0;
             //如果是阶段，则开始结束时间都有，计算开始时间偏移量
-            if (this.startDate && startDateX && endDateX)
+            if (this.startDate && startDateX)
                 barMargin = betweenFn(this.startDate, startDateX)*cellWidth;
             //否则计算结束时间偏移量
             else if (this.startDate && endDateX)
@@ -948,12 +933,6 @@
             if(this.scale == 'month') {
                 cellWidth = cellWidth * 2;
                 return tools.betweenMonths(this.startDate, this.today) *cellWidth + cellWidth - 4;
-            }
-            if(this.scale == 'month2div') {
-                return tools.betweenMonths2(this.startDate, this.today) *cellWidth + cellWidth - 4;
-            }
-            if(this.scale == 'month3div') {
-                return tools.betweenMonths3(this.startDate, this.today) *cellWidth + cellWidth - 4;
             }
             return 50;
         }
@@ -1002,6 +981,7 @@
             , realBeginDateName: 'finish_begin_date'
             , realEndDateName: 'finish_end_date'
             , finishPercentName: 'percent'
+            , dependTaskName: 'pre_task'
             , titleName: 'title'
             , type: 'type'  //区分是否阶段还是里程碑，对于里程碑，只需要结束时间
                             //它的取值分别为 '1'阶段,'2'里程碑
