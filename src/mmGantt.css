@@ -53,57 +53,19 @@ line.xline {
 g.lines .line {fill:none;stroke:black;opacity:0.7;}
 g.lines .triangle {stroke:black;opacity:0.7;}
 
-.gantt .ganttBarDiv {display:block;position:relative;height:20px;}
-.gantt .ganttBar {display:block;background-color:#00B0F0;border:0x solid #c00;height:18px;margin:0px -4px;position:absolute}
-.gantt .ganttBar.gantt-center{width:50px;}
-.gantt .ganttBar.gantt-single{margin-left:-2px;width:44px;-webkit-border-radius: 4px;-moz-border-radius:4px;border-radius:4px;}
-.gantt .ganttBar.gantt-begin{margin-left:-2px;width:48px;-webkit-border-radius: 4px 0 0 4px;-moz-border-radius: 4px 0 0 4px;border-radius: 4px 0 0 4px;}
-.gantt .ganttBar.gantt-end{width:45px;-webkit-border-radius: 0px 4px 4px 0;-moz-border-radius: 0px 4px 4px 0;border-radius: 0px 4px 4px 0;}
-
-.gantt .ganttGreen {background-color:#46F828}
-.gantt .ganttBlue {background-color:#00B0F0}
-.gantt .ganttRed {background-color:#FF0000}
-.gantt .ganttYellow {background-color:#F7F700}
-
-.gantt .gantt-center{border-right:0px;border-left:0px;}
-.gantt .gantt-begin{border-right:0px;}
-.gantt .gantt-end{border-left:0px;}
-
-.gantt .ganttBar.gantt-single.day{margin-left:-2px;width:24px;}
-.gantt .ganttBar.gantt-end.day{margin-right:-2px;width:26px;}
-
-.gantt .ganttBar.gantt-center.month3div{width:30px;}
-.gantt .ganttBar.gantt-single.month3div{margin-left:-2px;width:24px;}
-.gantt .ganttBar.gantt-end.month3div{margin-right:-2px;width:26px;}
-
-.gantt .ganttBar.gantt-center.month2div{width:30px;}
-.gantt .ganttBar.gantt-single.month2div{margin-left:-2px;width:24px;}
-.gantt .ganttBar.gantt-end.month2div{margin-right:-2px;width:26px;}
-
-.gantt .ganttBar2 {display:block;border:0x solid #c00;height:4px;margin:5px -4px 0 -4px;position:absolute;border-bottom:1px solid black}
-.gantt .ganttBar2.gantt-center{width:50px;}
-.gantt .ganttBar2.gantt-single{margin-left:1px;width:39px;}
-.gantt .ganttBar2.gantt-begin{margin-left:1px;width:46px;}
-.gantt .ganttBar2.gantt-end{width:43px;}
-
-.gantt .ganttBar2.gantt-begin .gantt-start-mark{border-left:2px solid #000;height:8px;}
-.gantt .ganttBar2.gantt-single .gantt-start-mark{border-left:2px solid #000;height:8px;}
-.gantt .ganttBar2.gantt-single .gantt-stop-mark{float:right;border-left:2px solid #000;height:8px;margin-top:-8px}
-.gantt .ganttBar2.gantt-end .gantt-stop-mark{float:right;border-left:2px solid #000;height:8px;}
-
-.gantt .ganttBar2.gantt-single.day{margin-left:-2px;width:24px;}
-.gantt .ganttBar2.gantt-end.day{margin-right:-2px;width:26px;}
-
-.gantt .ganttBar2.gantt-center.month3div{width:30px;}
-.gantt .ganttBar2.gantt-single.month3div{margin-left:-2px;width:24px;}
-.gantt .ganttBar2.gantt-end.month3div{margin-right:-2px;width:26px;}
-
-.gantt .ganttBar2.gantt-center.month2div{width:30px;}
-.gantt .ganttBar2.gantt-single.month2div{margin-left:-2px;width:24px;}
-.gantt .ganttBar2.gantt-end.month2div{margin-right:-2px;width:26px;}
-
-
-.gantt .layout-panel-south .layout-body{background-color:#eee}
+div.gantt-tooltip {
+position: absolute;
+text-align: left;
+width: 150px;
+height: 46px;
+padding: 4px;
+font-size: 12px;
+background: #ffd;
+border: 1px solid #ccc;
+border-radius: 4px;
+pointer-events: none;
+z-index:10;
+}
 
 /*icons*/
 .gantt .mmGrid .tree-req, .tree-req{background-image:url(../img/fullmonitor/icons/req.png); background-position:0 0}

@@ -18,6 +18,40 @@
         cellWidth:24
     };
     
+    /* 
+     * 创建tooltip
+     */
+    function drawTooltip(){
+        var d = $("div.gantt-tooltip");
+        var div;
+        if (d.size() == 0){
+            div = d3.select('body')
+                .append("div")
+                .attr("class", "gantt-tooltip")
+                .style("opacity", 0);
+        }else{
+            div = d3.select(d[0]);
+        }
+        return div;
+    }
+    
+    /*
+     * Default tooltip html output
+     */
+    function defaultTooltipHtml(d, opts){
+        var s = ['任务: '+d.title,
+            '开始时间: '+d.begin_date,
+            '结束时间: '+d.end_date,
+        ]
+        
+//        '实际开始时间: '+d.finish_begin_date,
+//        '实际结束时间: '+d.finish_end_date,
+//        '完成百分比: '+d.finish_percent+'%'
+        
+        return s.join('<br/>');
+    }
+    
+    
     var tools = {
     
         getDayOfYear : function (date) {
@@ -478,7 +512,6 @@
          * h 为每行的高度
          */
         , drawLines: function(h){
-            console.log(this.depends);
             var that = this;
             var top = (h - that.barHeight)/2;
             
@@ -641,7 +674,10 @@
             milestones
                 .append('path')
                     .attr("d", function(d){return that._drawDiamond(0, 0, 12, 12);})
-                    .attr("class", function(d) {return 'milestone '+d.color});
+                    .attr("class", function(d) {return 'milestone '+d.color})
+                    .on("mouseover", function(d){return that._tooltip_mouseover(d);})
+                    .on("mouseout", this._tooltip_mouseout)
+                    .on("click", function(d){return that.onTaskClickHandler(d);});
                     
             //添加里程碑文字
             //todo 是否有更好的方式和里程碑一起添加？
@@ -661,7 +697,10 @@
                     .attr("width", function(d){ return d.width;})
                     .attr("height", this.barHeight)
                     .attr("rx", 3).attr("ry", 3)
-                    .attr("class", function(d) {return 'ganttBar '+d.color});
+                    .attr("class", function(d) {return 'ganttBar '+d.color})
+                    .on("mouseover", function(d){return that._tooltip_mouseover(d);})
+                    .on("mouseout", this._tooltip_mouseout)
+                    .on("click", function(d){return that.onTaskClickHandler(d);});
                     
             //添加实际完成条
             normals
@@ -679,7 +718,10 @@
             phrase
                 .append('rect')
                     .attr("width", function(d){ return d.width;})
-                    .attr("height", group_h+1);
+                    .attr("height", group_h+1)
+                    .on("mouseover", function(d){return that._tooltip_mouseover(d);})
+                    .on("mouseout", this._tooltip_mouseout)
+                    .on("click", function(d){return that.onTaskClickHandler(d);});
             phrase
                 .append('path')
                 .attr('d', ['M', 0, group_h, 'l', 0, d_h, 'l', d_h, -d_h, 'z'].join(" "))
@@ -695,6 +737,39 @@
             
             //画线
             this.drawLines(h);
+            
+        }
+        
+        , _tooltip_mouseover: function(d){
+            var div = drawTooltip();
+            var formatTime = d3.time.format("%e %B");
+            var _html;
+            
+            if (this.gantt_opts.tooltipHtml)
+                _html = this.gantt_opts.tooltipHtml;
+            else
+                _html =  defaultTooltipHtml;
+            
+            div.transition()
+                .duration(200)
+                .style("opacity", .9);
+            div.html(_html(d, this.gantt_opts))
+                .style("left", (d3.event.pageX) + "px")
+                .style("top", (d3.event.pageY - 28) + "px");
+            
+        }
+        
+        , _tooltip_mouseout: function(d){
+            var div = drawTooltip();
+        
+            div.transition()
+                .duration(500)
+                .style("opacity", 0);
+            
+        }
+
+        , onTaskClickHandler: function(d){
+            this.grid.mmGrid('select', this.ganttIds[d.id]);
         }
         
         , appendRows: function(childData, parentId) {
@@ -855,7 +930,7 @@
                 }
                 data.push(x);
                 
-                ids[data.id] = data.length - 1;
+                ids[x.id] = data.length - 1;
             });
             
             this.ganttData = data;
@@ -1082,6 +1157,8 @@
             , color: null   //可以在gantt上显示不同的颜色的class,它是一个回调函数，如：
                             //function(d){'red'?d.status=='error':'green'}
             , group: null   //用来标记是否是group元素，可以是一个函数
+            , tooltipHtml: null //回调函数，用来显示tooltip的文本，格式为 function (d){return html;}
+                            //d为正在处理的数据项，如果不提供则使用缺省的显示
         }
     }
     

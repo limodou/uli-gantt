@@ -53,7 +53,11 @@
             <div id="log" style="height:100px;overflow:auto;border:1px solid #ccc;">
             </div>
         </main>
-
+        <style>
+            div.gantt-tooltip {
+                height:96px;
+            }
+        </style>
         <script src="js/vendor/jquery-1.9.1.min.js"></script>
         <script src="js/vendor/jquery-migrate-1.2.1.min.js"></script>
         <script src="js/plugins.js"></script>
@@ -98,6 +102,18 @@
                 var f_percent = function(v){
                     return v+'%';
                 }
+                
+                function TooltipHtml(d, opts){
+                    var s = ['任务: '+d.title,
+                        '开始时间: '+d.begin_date,
+                        '结束时间: '+d.end_date,
+                        '实际开始时间: '+(d.finish_begin_date || ''),
+                        '实际结束时间: '+(d.finish_end_date || ''),
+                        '完成百分比: '+d.finish_percent+'%'
+                        ];
+                    return s.join('<br/>');
+                }
+                
                 var cols = [
                     {title:'ID', name:'id', width: 30, align: 'center',lockWidth:true},
                     {title:'名称', name:'name' ,width:150, lockDisplay: true, editor:{type:'text'} },
@@ -149,6 +165,8 @@
                             else if (d.status == '3' || d.status == '6') return 'green';
                             return '';
                             }
+                        , tooltipHtml: TooltipHtml
+                        
                         }
                     });
 
