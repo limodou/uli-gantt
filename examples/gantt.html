@@ -156,7 +156,7 @@
                     {grid: grid_settings
                     , gantt: {
                         data:[]
-                        , scale:"week"
+                        , scale:"month"
                         , titleName:'name'
                         , group: function(d){return d._isParent;}
                         , color: function(d){
@@ -165,6 +165,7 @@
                             return '';
                             }
                         , tooltipHtml: TooltipHtml
+                        , today: new Date(2013, 1, 10)
                         
                         }
                     });
@@ -250,7 +251,8 @@
                 
                 //甘特图处理
                 $('#btnToday').on('click', function(){
-                    gantt.gantt('toToday');
+                    debugger;
+                    gantt.toToday();
                 });
                 $('#btnMonth').on('click', function(){
                     gantt.redraw('month')

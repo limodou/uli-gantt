@@ -42,7 +42,7 @@
         this.gantt_opts = this.opts.gantt;
         
         //初始化今天日期
-        this.today = this.grid_opts.today;
+        this.today = this.gantt_opts.today;
         if(!this.today) {
             this.today = this.getToday();
         }
@@ -643,7 +643,8 @@
         }
             
         , toToday: function() {
-            var container = this.grid.parent().parent();
+            debugger;
+            var container = this.gantt.parent().parent();
             var left = parseInt(container.children("div.gantt-today-marker").css('left'),10)
             container.children(".mmg-bodyWrapper").scrollLeft(container.children(".mmg-bodyWrapper").scrollLeft()+left-30);
         }
@@ -777,7 +778,10 @@
             }
             if(this.scale == 'month') {
                 cellWidth = cellWidth * 2;
-                return this.betweenMonths(this.startDate, this.today) *cellWidth + cellWidth ;
+
+                var preMargin = this.betweenMonths(this.startDate, this.today) *cellWidth;
+                var dayMargin = this.getDayPosOfMonth(this.today)*(cellWidth-2);
+                return preMargin + dayMargin + 1 ;
             }
             return 50;
         }
@@ -837,11 +841,14 @@
         }
 
         , getDayPosOfMonth: function(date) {
+            var map = [31,28,31,30,31,30,31,31,30,31,30,31];
             //获得某一天在某个月的位置百分比
             var sd = new Date(date.valueOf());
-            var d = new Date(sd.getFullYear() +"/" + (sd.getMonth() + 2) + "/0")
-            var dayCount = d.getDate();
-            return sd.getDate()/d.getDate();
+            var dayCount = map[sd.getMonth()];
+            if(dayCount==28) {
+                dayCount = new Date(sd.getFullYear(), 2, 0).getDate()
+            }
+            return (sd.getDate()-1)/(dayCount-1);
         }
     
         , formatDate: function(date) {
