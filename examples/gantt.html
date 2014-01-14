@@ -156,7 +156,7 @@
                     {grid: grid_settings
                     , gantt: {
                         data:[]
-                        , scale:"month"
+                        , scale:"week"
                         , titleName:'name'
                         , group: function(d){return d._isParent;}
                         , color: function(d){
@@ -165,7 +165,7 @@
                             return '';
                             }
                         , tooltipHtml: TooltipHtml
-                        , today: new Date(2013, 1, 10)
+                        , today: new Date(2013, 0, 1)
                         
                         }
                     });
@@ -251,17 +251,16 @@
                 
                 //甘特图处理
                 $('#btnToday').on('click', function(){
-                    debugger;
-                    gantt.toToday();
+                    $('#gantt').gantt("toToday");
                 });
                 $('#btnMonth').on('click', function(){
-                    gantt.redraw('month')
+                     $('#gantt').gantt("redraw", "month");
                 });
                 $('#btnWeek').on('click', function(){
-                    gantt.redraw('week')
+                    $('#gantt').gantt("redraw", "week");
                 });
                 $('#btnDay').on('click', function(){
-                    gantt.redraw('day')
+                    $('#gantt').gantt("redraw", "day");
                 });
                 
                 

@@ -46,7 +46,12 @@
         if(!this.today) {
             this.today = this.getToday();
         }
-        this.scale = this.opts.gantt.scale;
+        this.scale = this.gantt_opts.scale;
+        if(this.testabc == 222) {
+            alert(1)
+        }
+        this.testabc = 1111;
+        this.updateDate = new Date();
         this.weekMidDay = this.gantt_opts.weekMidDay;
         
         element.html(GANTT_TEMPLATE).addClass("gantt");
@@ -99,6 +104,7 @@
             this.loadItems(this.grid_opts.items);
         }
         
+        return this;
     }
     
     /*
@@ -301,7 +307,7 @@
             
             //下一步很重要，重新绑定draw对象，在initGanttGrid中的处理对闭包无效
             //感觉redrawGantt是在事件中调用的，所以this还是旧的
-            this.draw = d3.select(this.gantt_panel.find('svg')[0]);
+            //this.draw = d3.select(this.gantt_panel.find('svg')[0]);
             this.draw
                 .attr('width', parseInt(this.gantt.get(0).style.width))
                 .attr('height', this.grid.height());
@@ -516,7 +522,8 @@
             var gridcontainer = gridview.parent().parent();
             //增加今日提示
             var leftMargin = this.getTodayLeftMargin();
-            gridcontainer.append("<div class='gantt-today-marker' style='z-index:100;left:"+leftMargin+"px'><div>今日</div></div>");
+            gridcontainer.append("<div class='gantt-today-marker' style='z-index:100;left:" + 
+                leftMargin+"px'><div title='"+ this.formatDate(this.today) +"'>今日</div></div>");
             
             var treeview = this.grid;
             var treecontainer = treeview.parent().parent();
@@ -643,16 +650,17 @@
         }
             
         , toToday: function() {
-            debugger;
             var container = this.gantt.parent().parent();
             var left = parseInt(container.children("div.gantt-today-marker").css('left'),10)
             container.children(".mmg-bodyWrapper").scrollLeft(container.children(".mmg-bodyWrapper").scrollLeft()+left-30);
         }
             
         , redraw: function(scale) {
-            var data = this._process_data(this.grid.mmGrid("rows", true)); 
+
             this.scale = scale;
-            
+            this.testabc = 222;
+            this.updateDate = new Date();
+            var data = this._process_data(this.grid.mmGrid("rows", true)); 
             this.getGanttRange(data);
             this.initGanttGrid();
             this.loadGanttData(data);
@@ -682,7 +690,9 @@
                     maxDate.setDate(maxDate.getDate() + 3);
                     break;
                 case "week":
-                    maxDate.setDate(maxDate.getDate() + 7*3);
+                    maxDate.setDate(maxDate.getDate() + 7*2);
+                    maxDate = this.getDayForWeek(maxDate);
+                    maxDate.setDate(maxDate.getDate() + 3);
                     break;
                 case "month":
                     var bd = new Date(maxDate.getFullYear(), maxDate.getMonth(), 1);
@@ -707,7 +717,9 @@
                     minDate.setDate(minDate.getDate() - 3);
                     break;
                 case "week":
-                    minDate.setDate(minDate.getDate() - 3*7);
+                    minDate.setDate(minDate.getDate() - 2*7);
+                    minDate = this.getDayForWeek(minDate);
+                    minDate.setDate(minDate.getDate() - 3);
                     break;
                 case "month":
                     var bd = new Date(minDate.getFullYear(), minDate.getMonth(), 1);
@@ -730,60 +742,43 @@
         
         /* 获得时间段的坐标 */
         , getBarInfo: function(startDate, endDate) {
-            var cellWidth = this.gantt_opts.cellWidth;
-            var scale = this.scale;
-            if( scale == "month") {cellWidth = cellWidth * 2}
-            
-            var startDateX = startDate;
-            var endDateX = endDate;
             var barMargin = 0;
             var barWidth = 0;
-            var betweenFn;
-    
-            if(scale == "week") {
-                if (startDate)
-                    startDateX = this.getDayForWeek(startDate);
-                if (endDate)
-                    endDateX = this.getDayForWeek(endDate);
-                betweenFn = $.proxy(this.betweenWeeks, this);
-            }
-            if(scale == "day") {
-                betweenFn = $.proxy(this.betweenDays, this);
-            }
-            if(scale == "month") {
-                betweenFn = $.proxy(this.betweenMonths, this);
-            }
-    
-            if (startDateX && endDateX)
-                barWidth = betweenFn(startDateX, endDateX)*cellWidth+cellWidth-8;
-            else
-                barWidth = 0;
+            if (startDate) {
             //如果是阶段，则开始结束时间都有，计算开始时间偏移量
-            if (this.startDate && startDateX)
-                barMargin = betweenFn(this.startDate, startDateX)*cellWidth;
+                barMargin = this.getDateLeftMargin(startDate, this.scale);
+                if (endDate) {
+                    barWidth = this.getDateLeftMargin(endDate, this.scale) - barMargin;
+                }
+            } else if (endDate) {
             //否则计算结束时间偏移量
-            else if (this.startDate && endDateX)
-                barMargin = betweenFn(this.startDate, endDateX)*cellWidth;;
-            
+                barMargin = this.getDateLeftMargin(endDate, this.scale)
+            }
+
             return {width:barWidth, margin:barMargin}
+        }
+
+        , getDateLeftMargin: function(date, scale) {
+            var cellWidth = this.gantt_opts.cellWidth;
+            if(scale == 'day') {
+                return this.betweenDays(this.startDate, date)*cellWidth + cellWidth/2 ;
+            }
+            if(scale == 'week') {
+                var preMargin = this.betweenWeeks(this.getDayForWeek(this.startDate), this.getDayForWeek(date)) * cellWidth;
+                var dayMargin = this.getDayPosOfWeek(date)*(cellWidth-2);
+                return preMargin + dayMargin + 1 ;
+            }
+            if(scale == 'month') {
+                cellWidth = cellWidth * 2;
+
+                var preMargin = this.betweenMonths(this.startDate, date) *cellWidth;
+                var dayMargin = this.getDayPosOfMonth(date)*(cellWidth-2);
+                return preMargin + dayMargin + 1 ;
+            }
         }
         
         , getTodayLeftMargin: function() {
-            var cellWidth = this.gantt_opts.cellWidth;
-            if(this.scale == 'day') {
-                return this.betweenDays(this.startDate, this.today)*cellWidth + cellWidth ;
-            }
-            if(this.scale == 'week') {
-                return this.betweenWeeks(this.getDayForWeek(this.startDate), this.getDayForWeek(this.today)) * cellWidth + cellWidth;
-            }
-            if(this.scale == 'month') {
-                cellWidth = cellWidth * 2;
-
-                var preMargin = this.betweenMonths(this.startDate, this.today) *cellWidth;
-                var dayMargin = this.getDayPosOfMonth(this.today)*(cellWidth-2);
-                return preMargin + dayMargin + 1 ;
-            }
-            return 50;
+            return this.getDateLeftMargin(this.today, this.scale);
         }
         
         , getGrid: function() {
@@ -827,7 +822,6 @@
             var y = weekDay.getFullYear();
             var m = weekDay.getMonth();
             var week = this.getWeekOfYear(weekDay);
-            console.log("data,", date, "week", week);
             return fullId? y + "-W" + week : week;
         }
         
@@ -836,8 +830,7 @@
             var weekDay = this.getDayForWeek(date);
             var from = new Date(weekDay.setDate(weekDay.getDate() - 3));
             var to = new Date(weekDay.setDate(weekDay.getDate() + 6));
-            return from.getFullYear() + "-" + (from.getMonth()+1)+"-"+from.getDate() + "  -\n  " + 
-                to.getFullYear()+ "-" + (to.getMonth()+1)+"-"+to.getDate()
+            return this.formatDate(from) + "~\n  " + this.formatDate(to)
         }
 
         , getDayPosOfMonth: function(date) {
@@ -850,15 +843,48 @@
             }
             return (sd.getDate()-1)/(dayCount-1);
         }
+
+        , getDayPosOfWeek: function(date) {
+            var df = new Date(date.valueOf());
+            var gap = df.getDay() - this.weekMidDay;
+            if(gap>3) gap = 7 -gap;
+            if(gap<-3) gap = 7 + gap;
+            gap = gap + 3;
+            return gap/6;
+
+        }
     
-        , formatDate: function(date) {
+        , formatDate: function(date, fmt) {
+            // 对Date的扩展，将 Date 转化为指定格式的String   
+            // 月(M)、日(d)、小时(h)、分(m)、秒(s)、季度(q) 可以用 1-2 个占位符，   
+            // 年(y)可以用 1-4 个占位符，毫秒(S)只能用 1 个占位符(是 1-3 位的数字)   
+            // 例子：   
+            // ("yyyy-MM-dd hh:mm:ss.S") ==> 2006-07-02 08:09:04.423   
+            // ("yyyy-M-d h:m:s.S")      ==> 2006-7-2 8:9:4.18   
+
             if(!date) return "";
-            var year = date.getFullYear();
-            var month = (date.getMonth()+1);
-            var day = date.getDate();
-            month = (month<=9) ? "0" + month : month;
-            day = (day<=9) ? "0" + day : day;
-            return year + "-" + month + "-" + day;
+            var o = {   
+                "M+" : date.getMonth()+1,                 //月份   
+                "d+" : date.getDate(),                    //日   
+                "h+" : date.getHours(),                   //小时   
+                "m+" : date.getMinutes(),                 //分   
+                "s+" : date.getSeconds(),                 //秒   
+                "q+" : Math.floor((date.getMonth()+3)/3), //季度   
+                "S"  : date.getMilliseconds()             //毫秒   
+            };
+            fmt = fmt || "yyyy-MM-dd"
+
+            if(/(y+)/.test(fmt)) {
+                fmt=fmt.replace(RegExp.$1, (date.getFullYear()+"").substr(4 - RegExp.$1.length));   
+            }
+                
+            for(var k in o) {
+                if(new RegExp("("+ k +")").test(fmt)) {
+                    fmt = fmt.replace(RegExp.$1, (RegExp.$1.length==1) ? (o[k]) : (("00"+ o[k]).substr((""+ o[k]).length)));
+                }
+            }
+                    
+            return fmt;   
         }
         
         , dateDeserialize: function (dateStr) {
@@ -1066,11 +1092,11 @@
         , getToday : function(){
             var today = new Date();
             return new Date(today.getFullYear(), today.getMonth(), today.getDate());
-        }   
+        }
         
     }
     
-    $.fn.gantt = function () {
+    $.fn.gantt = function (option) {
         if(arguments.length === 0 || typeof arguments[0] === 'object'){
             var option = arguments[0]
                 , data = this.data('gantt')
