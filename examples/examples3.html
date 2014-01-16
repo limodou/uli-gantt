@@ -8,6 +8,7 @@
         <title></title>
         <meta name="description" content="">
         <meta name="viewport" content="width=device-width">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
 
         <!-- Place favicon.ico and apple-touch-icon.png in the root directory -->
 
@@ -19,10 +20,11 @@
         <link rel="stylesheet" href="../src/mmGantt.css">
         <link rel="stylesheet" href="../src/splitter.css">
         <link rel="stylesheet" href="js/vendor/jquery-ui-1.9.2.custom/css/redmond/jquery-ui-1.9.2.custom.min.css">
-        <!--[if lt IE 9]>
-        <script src="js/vendor/html5shiv.js"></script>
-        <![endif]-->
         <script src="js/vendor/modernizr-2.6.2.min.js"></script>
+        <!--[if lt IE 9]>
+            <script src="js/vendor/html5shiv.js"></script>
+            <script src="../src/style-shim.js"></script>
+        <![endif]-->
     </head>
     <body style="padding: 40px;">
         <main>
@@ -50,7 +52,7 @@
             <div id="gantt"></div>
 
             </div>
-            <div id="log" style="height:100px;overflow:auto;border:1px solid #ccc;">
+            <div id="log" style="height:100px;overflow:auto;border:1px solid #ccc;margin-top:20px">
             </div>
         </main>
         <style>
@@ -67,7 +69,12 @@
         <script src="../src/mmGantt.js"></script>
         <script src="../src/jquery.cookie.js"></script>
         <script src="../src/splitter.js"></script>
+        <!--[if lte IE 8]>
+            <script src="../src/r2d3.js" charset="utf-8"></script>
+        <![endif]-->
+        <!--[if gte IE 9]><!-->
         <script src="../src/d3.min.js"></script>
+        <!--<![endif]-->        
         <script src="../src/jquery.jeditable.js"></script>
         <script src="js/vendor/jquery-ui-1.9.2.custom/js/jquery-ui-1.9.2.custom.min.js"></script>
         <script src="js/vendor/jquery.jeditable.datepicker.js"></script>
@@ -78,7 +85,7 @@
                 function get_id(){ _id ++; return _id}
                 
                 var items = [
-                    {name:'需求阶段', 'begin_date':'2013-1-5', 'end_date':'2013-2-1', 'pre_task':'', type:'1', 'status':'1', 'percent':60, id:1}
+                    {name:'需求阶段', 'begin_date':'2013-1-5', 'end_date':'2014-2-1', 'pre_task':'', type:'1', 'status':'1', 'percent':60, id:1}
                     , {name:'需求分析', 'begin_date':'2013-1-5', 'end_date':'2013-1-20', 'finish_begin_date':'2013-1-10', 'finish_end_date':'2013-1-20', 'pre_task':'', type:'1', 'status':'3', 'percent':60, _parent:1, id:2}
                     , {name:'需求分析评审', 'begin_date':'', 'end_date':'2013-2-25', 'pre_task':'', 'pre_task':'2', type:'2', 'status':'2', 'percent':30, _parent:1, id:3}
                     , {name:'开发阶段', 'begin_date':'2013-2-5', 'end_date':'2013-5-30', 'pre_task':'', type:'1', 'status':'1', 'percent':0, id:4}
@@ -151,7 +158,6 @@
                     , cellEditUrl: function(value, settings){return value;}
 
                 }
-
                 
                 var gantt = $('#gantt').gantt(
                     {grid: grid_settings
@@ -166,6 +172,7 @@
                             return '';
                             }
                         , tooltipHtml: TooltipHtml
+                        , today: new Date(2013, 0, 1)
                         
                         }
                     });
@@ -251,16 +258,16 @@
                 
                 //甘特图处理
                 $('#btnToday').on('click', function(){
-                    gantt.gantt('toToday');
+                    $('#gantt').gantt("toToday");
                 });
                 $('#btnMonth').on('click', function(){
-                    gantt.redraw('month')
+                     $('#gantt').gantt("redraw", "month");
                 });
                 $('#btnWeek').on('click', function(){
-                    gantt.redraw('week')
+                    $('#gantt').gantt("redraw", "week");
                 });
                 $('#btnDay').on('click', function(){
-                    gantt.redraw('day')
+                    $('#gantt').gantt("redraw", "day");
                 });
                 
                 
