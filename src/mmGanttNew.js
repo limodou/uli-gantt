@@ -438,7 +438,7 @@
                 .append('path')
                 .attr('d', ['M', 0, group_h, 'l', 0, d_h, 'l', d_h, -d_h, 'z'].join(" "))
                 .attr('class', 'left-angle');
-                
+            
             phrase
                 .append('path')
                 .attr('d', function(d){return ['M', d.width, group_h, 'l', 0, d_h, 'l', -d_h, -d_h, 'z'].join(" ");})
@@ -748,7 +748,7 @@
             //如果是阶段，则开始结束时间都有，计算开始时间偏移量
                 barMargin = this.getDateLeftMargin(startDate, this.scale);
                 if (endDate) {
-                    barWidth = this.getDateLeftMargin(endDate, this.scale) - barMargin;
+                    barWidth = this.getDateLeftMargin(endDate, this.scale) - barMargin + 1;
                 }
             } else if (endDate) {
             //否则计算结束时间偏移量
@@ -765,14 +765,14 @@
             }
             if(scale == 'week') {
                 var preMargin = this.betweenWeeks(this.getDayForWeek(this.startDate), this.getDayForWeek(date)) * cellWidth;
-                var dayMargin = this.getDayPosOfWeek(date)*(cellWidth-2);
+                var dayMargin = this.getDayPosOfWeek(date)*(cellWidth-3);
                 return preMargin + dayMargin + 1 ;
             }
             if(scale == 'month') {
                 cellWidth = cellWidth * 2;
 
                 var preMargin = this.betweenMonths(this.startDate, date) *cellWidth;
-                var dayMargin = this.getDayPosOfMonth(date)*(cellWidth-2);
+                var dayMargin = this.getDayPosOfMonth(date)*(cellWidth-3);
                 return preMargin + dayMargin + 1 ;
             }
         }

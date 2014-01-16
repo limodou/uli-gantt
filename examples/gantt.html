@@ -8,6 +8,7 @@
         <title></title>
         <meta name="description" content="">
         <meta name="viewport" content="width=device-width">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
 
         <!-- Place favicon.ico and apple-touch-icon.png in the root directory -->
 
@@ -19,10 +20,11 @@
         <link rel="stylesheet" href="../src/mmGantt.css">
         <link rel="stylesheet" href="../src/splitter.css">
         <link rel="stylesheet" href="js/vendor/jquery-ui-1.9.2.custom/css/redmond/jquery-ui-1.9.2.custom.min.css">
-        <!--[if lt IE 9]>
-        <script src="js/vendor/html5shiv.js"></script>
-        <![endif]-->
         <script src="js/vendor/modernizr-2.6.2.min.js"></script>
+        <!--[if lt IE 9]>
+            <script src="js/vendor/html5shiv.js"></script>
+            <script src="../src/style-shim.js"></script>
+        <![endif]-->
     </head>
     <body style="padding: 40px;">
         <main>
@@ -67,7 +69,12 @@
         <script src="../src/mmGanttNew.js"></script>
         <script src="../src/jquery.cookie.js"></script>
         <script src="../src/splitter.js"></script>
+        <!--[if lte IE 8]>
+            <script src="../src/r2d3.js" charset="utf-8"></script>
+        <![endif]-->
+        <!--[if gte IE 9]><!-->
         <script src="../src/d3.min.js"></script>
+        <!--<![endif]-->        
         <script src="../src/jquery.jeditable.js"></script>
         <script src="js/vendor/jquery-ui-1.9.2.custom/js/jquery-ui-1.9.2.custom.min.js"></script>
         <script src="js/vendor/jquery.jeditable.datepicker.js"></script>
