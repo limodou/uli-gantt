@@ -102,3 +102,7 @@
 .mmg-notation.info{
     border-color: #3a87ad #3a87ad transparent transparent;
 }
+
+.mmg-notation.changed{
+    border-color: #f00 #f00 transparent transparent;
+}

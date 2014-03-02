@@ -232,6 +232,17 @@
             }
             
             /*
+                根据id值找到对应的元素对象
+            */
+            , findIndexById: function(id){
+                var $body = this.$body;
+                var trs = $body.find('tbody tr['+this.opts.keyAttrName+'="'+id+'"]');
+                if (trs.length > 0)
+                    return trs.index();
+                return -1;
+            }
+            
+            /*
                 查找当前元素的上一个兄弟结点
             */
             
@@ -294,7 +305,7 @@
                 var d;
                 var i=0;
                 $.each($body.find('tr'), function(){
-                    if ((visible && $(this).is(":visible")) || !visible){
+                    if ((visible && $(this).is(":visible") && !$(this).hasClass('emptyRow')) || !visible){
                         d = $.data(this,'item');
                         items.push(d);
                         i++;
@@ -704,7 +715,7 @@
                         data:data
                     })
                     .done(function(r){
-                        if($.isArray(r)) {
+                        if($.isArray(r) || !r.success) {
                             r = {success: true, data: r}
                         }
                         
@@ -960,6 +971,7 @@
             , select: function(args){
                 var opts = this.opts;
                 var $body = this.$body;
+                var $head = this.$head;
             
                 e = this._trigger($body, 'select');
                 if(e.isDefaultPrevented()) return;
@@ -1405,10 +1417,15 @@
                             if (a.length==0){
                                 a = $('<a href="#" title="' + this.opts.stringExpand + '" class="expander"></a>');
                                 cell.children('div').prepend(a);
-                                a.click(function() { $self.toggleExpand(node); return false; });
+                                a.click(function(e) { 
+                                    e.preventDefault();
+                                    $self.toggleExpand(node); 
+                                    return false;
+                                });
                                 if(this.opts.clickableNodeNames) {
                                     a.css('cursor', "pointer");
                                     $(cell).click(function(e) {
+                                        e.preventDefault();
                                         // Don't double-toggle if the click is on the existing expander icon
                                         if (e.target.className != 'expander') {
                                             $self.toggleExpand(node);
@@ -1437,7 +1454,7 @@
             , set_notation: function(index, column, cls, message){
                 var $tr = this._get_item(index);
                 var cell = $($tr.children("td")[this._getColumnIndex(column)]);
-                cell.removeClass('error').removeClass('warning').removeClass('success').remove('info');
+                cell.removeClass('error').removeClass('warning').removeClass('success').remove('info').remove('changed');
                 cell.addClass(cls);
                 cell.attr('title', message);
                 cell.find('.mmg-notation').remove();

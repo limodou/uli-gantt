@@ -337,7 +337,7 @@
             var $backboard = this.$backboard;
             $mmGrid.find('a.mmg-btnBackboardDn').css({
                 'top': $headWrapper.outerHeight(true)
-            }).slideUp('fast');
+            }).hide();
 
             var cols = this._leafCols();
             if(cols){
@@ -413,6 +413,9 @@
             });
             $headWrapper.on('mouseenter',function(){
                 if($backboard.is(':hidden') && opts.showBackboard){
+                    $btnBackboardDn.css({
+                        'top': $headWrapper.outerHeight(true)
+                    });
                     $btnBackboardDn.slideDown('fast');
                 }
             });
@@ -559,6 +562,11 @@
                 document.selection && document.selection.empty && ( document.selection.empty(), 1)
                 || window.getSelection && window.getSelection().removeAllRanges();
                 
+                //检查是否已经创建了editor,check form element
+                if ($(this).find('form').size()>0){
+                    e.preventDefault();
+                    return;
+                }
                 var $this = $(this);
                 var event = jQuery.Event("cellSelected");
                 event.target = e.target;
@@ -638,6 +646,13 @@
             function callback(result, settings){
                 if (result.success){
                     that.onEditorCallback(el.parent()[0], col, result.data);
+                    //更新单元格
+                    if(col.renderer){
+                        $(this).html(col.renderer(data[that._getColName(col)],data));
+                    }else{
+                        $(this).html(data[that._getColName(col)]);
+                    }
+                    
                     return true;
                 }
             }
@@ -646,7 +661,10 @@
                     v = v == 'on' ? true: false;
                 else if(type == 'int')
                     v = parseInt(v);
-                return settings.data !== v;
+                var data = settings.data;
+                if ($.isFunction(data))
+                    data = data(this.revert, settings);
+                return data !== v;
             }
             
             //判断如果有choices，则处理为select
@@ -669,12 +687,15 @@
                 onblur:'submit',
                 type:type,
                 data:get_data,
-                submitdata:{id:data.id, name:col.name},
+                submitdata:{id:data.id, col_name:col.name},
+                onedit:col.onedit,
+                name:col.name,
                 callback:callback,
                 modified:modified,
                 ajaxoptions: {dataType:'json', type:'POST'},
                 submit:'',
                 cancel:'',
+                placeholder:'',
                 inputOptions:col.editor.options
                 });
             node.click();
@@ -1257,6 +1278,26 @@
             return selected;
         }
 
+        , isSelected: function(args){
+            var opts = this.opts;
+            var $body = this.$body;
+            var $head = this.$head;
+            
+            if(typeof args === 'number'){
+                var $tr = $body.find('tr').eq(args);
+                return $tr.hasClass('selected');
+            }else if(typeof args === 'function'){
+                $.each($body.find('tr'), function(index){
+                    if(args($.data(this, 'item'), index)){
+                        var $this = $(this);
+                        return $this.hasClass('selected');
+                    }
+                });
+            }else{
+                return;
+            }
+            
+        }
         , rows: function(){
             var $body = this.$body;
             var items = [];

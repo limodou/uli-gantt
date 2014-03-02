@@ -364,6 +364,7 @@
   border:0px solid red;
 }
 
+.mmGrid .mmg-cellWrapper{height:100%;}
 .mmGrid .mmg-cellWrapper form {margin:0px;}
 .mmGrid .mmg-cellWrapper form input{font-size:1em;
 background-color:white;border:1px solid gray;margin:0;padding:0;
@@ -378,4 +379,9 @@ box-shadow: inset 0 1px 1px rgba(0,0,0,0.075);
 -o-transition: border linear .2s,box-shadow linear .2s;
 transition: border linear .2s,box-shadow linear .2s;
 position: relative; z-index:120;
+}
+.mmGrid .mmg-cellWrapper form select{font-size:1em;
+position: relative; z-index:120;
+margin:0px;
+padding:0px;
 }

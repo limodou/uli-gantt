@@ -47,11 +47,6 @@
             this.today = this.getToday();
         }
         this.scale = this.gantt_opts.scale;
-        if(this.testabc == 222) {
-            alert(1)
-        }
-        this.testabc = 1111;
-        this.updateDate = new Date();
         this.weekMidDay = this.gantt_opts.weekMidDay;
         
         element.html(GANTT_TEMPLATE).addClass("gantt");
@@ -65,7 +60,7 @@
         this.barHeight = 16;
         this.finishBarHeight = 6;
         
-        this.ganttData = [];    //甘特图数据，为数组
+//        this.ganttData = [];    //甘特图数据，为数组
         this.ganttIds  = {};    //甘特图数据的索引，key为id,值为数组的索引
         this.depends   = [];    //任务间的依赖，一个依赖是一条记录，格式为一个数组
                                 //   [from, to] from为前置任务
@@ -115,30 +110,12 @@
         constructor: Gantt
 
         , loadItems : function(items) {
-            this.grid.mmGrid("load", items);
-            var d = this._process_data(this.grid.mmGrid("rows", true));
-            this.getGanttRange(d);
-            this.initGanttGrid();
-            this.loadGanttData(d);
             this.grid.trigger('resize');
+            this.grid.mmGrid("load", items);
         }        
 
         , initTreeGrid: function() {
             var that = this;
-            
-            /* 装入grid数据时，同时对日期进行格式化 */
-            var expandFilter = function(data, parentId) {
-                for(var i=0; i<data.length; i++) {
-                    that._convert_date(data[i]);
-                    var x = this.getBarInfo(data[i].beginTime, data[i].endTime);
-                }
-                
-                if(parentId) {
-                    //redraw ganttgrid
-                    that.appendRows(element, data, parentId);
-                }
-                return data;
-            };
             
             var grid_settings = {
                 nowrap: true
@@ -146,7 +123,6 @@
                 , height: '100%'
                 , expandURL: this.grid_opts.url
                 , expandMethod: 'POST'
-                , expandFilter: expandFilter
                 , autoLoad: false
                 , clickableNodeNames: false
             }
@@ -155,10 +131,17 @@
             var mmgrid = this.grid.mmGrid(settings);
             
             var events = ['added', 'updated', 'deleted', 'indented', 
-                'unindented', 'upped', 'collapsed', 'expanded']
+                'unindented', 'upped', 'collapsed', 'expanded', 'loadSuccess']
             $.each(events, $.proxy(function(index, v){
                 mmgrid.on(v, $.proxy(function(e, data){
-                    this.redrawGantt();
+                    var that = this;
+                    if (e.type == 'updated'){
+                        $.each(data, function(k, v){
+                            if (that.gantt_opts.monitorFields.length==0 || that.gantt_opts.monitorFields.indexOf(k)>-1)
+                                that.redrawGantt();
+                        })
+                    } else 
+                        that.redrawGantt();
                 }, this));
             }, this));
             
@@ -174,8 +157,8 @@
             //如果宽度为0，表示没有结束，则使用百分比来计算宽度
             if (y.width == 0)
                 y.width = x.width * data.finish_percent / 100;
-            data.finish_width = y.width;
-            data.finish_margin = y.margin-x.margin;
+            data.finish_width = y.width || 0;
+            data.finish_margin = y.margin-x.margin || 0;
         }
         /*
          * 生成一个菱形的path信息
@@ -188,8 +171,8 @@
         }
         
         , drawGrid: function(d, x1, y1){
-            var w = this.draw.attr('width');
-            var h = this.draw.attr('height');
+            var w = parseInt(this.draw.attr('width'));
+            var h = parseInt(this.draw.attr('height'));
             
             x1 = x1 || 0;
             y1 = y1 || 0;
@@ -232,11 +215,13 @@
                 
             function _line(from, to){
                 var s;
-                var b = that.ganttData[from];
-                var e = that.ganttData[to];
+                var b = that.ganttIds[from];
+                var e = that.ganttIds[to];
+                var from_index = that.grid.findIndexById(b.id);
+                var to_index = that.grid.findIndexById(e.id);
                 var x = b.margin + b.width;
-                var y = from * h + h/2;
-                var y2 = to * h + 0.5;   //任务2起始纵坐标
+                var y = from_index * h + h/2;
+                var y2 = to_index * h + 0.5;   //任务2起始纵坐标
                 var e_begin;
                 //如果上个任务结束时间小于下个任务，则直接画线
                 //todo 是否考虑下个任务的开始时间可以向前几天？
@@ -247,17 +232,19 @@
                 if (b.endTime < e_begin){
                     s = ['M', x, y, 'H', e.margin-0.5, 'V', y2+top-3];
                 }else {
-                    s = ['M', x, y, 'h', 2.5, 'V', y2, 'L', e.margin-6.5, y2, 'L', e.margin-6.5, to*h+top+that.barHeight/2-0.5];
+                    s = ['M', x, y, 'h', 2.5, 'V', y2, 'L', e.margin-6.5, y2, 'L', e.margin-6.5, to_index*h+top+that.barHeight/2-0.5];
                 }
                 return s.join(" ");
             }
             
             function _triangle(from, to){
                 var s;
-                var b = that.ganttData[from];
-                var e = that.ganttData[to];
+                var b = that.ganttIds[from];
+                var e = that.ganttIds[to];
+                var from_index = that.grid.findIndexById(b.id);
+                var to_index = that.grid.findIndexById(e.id);
                 var top = (h - that.barHeight)/2;
-                var y2 = to * h ;   //任务2起始纵坐标
+                var y2 = to_index * h ;   //任务2起始纵坐标
                 var e_begin;
 
                 if (e.type == '1')
@@ -268,7 +255,7 @@
                 if (b.endTime < e_begin){
                     s = ['M', e.margin-0.5, y2+top-3, 'h', 3, 'l', -3, 3, 'l', -3, -3, 'h', 3];
                 }else{
-                    s = ['M', e.margin-6.5, to*h+top+that.barHeight/2, 
+                    s = ['M', e.margin-6.5, to_index*h+top+that.barHeight/2, 
                         'h', 3, 'v', -3, 'l', 3, 3, 'l', -3, 3, 'v', -3];
                 }
                 return s.join(" ");
@@ -302,17 +289,37 @@
             lines.exit()
                 .remove();
         }
-        , redrawGantt: function(){
+        , redrawGantt: function(scale){
+            var oldStartDate = this.startDate;
+            var oldEndDate = this.endDate;
+            var top = this.gantt.parent().scrollTop();
+            var left = this.gantt.parent().scrollLeft();
+            
+            scale = scale || this.gantt_opts.scale;
+            var data = this._process_data(this.grid.mmGrid("rows", true));
+            //计划最大，最小日期
+            this.getGanttRange(data);
+            if (oldStartDate != this.startDate || oldEndDate != this.endDate || scale != this.scale){
+                this.scale = scale;
+                this.initGanttGrid();
+            }
+            
             this.grid.trigger('resize');
             
-            //下一步很重要，重新绑定draw对象，在initGanttGrid中的处理对闭包无效
-            //感觉redrawGantt是在事件中调用的，所以this还是旧的
-            //this.draw = d3.select(this.gantt_panel.find('svg')[0]);
             this.draw
                 .attr('width', parseInt(this.gantt.get(0).style.width))
                 .attr('height', this.grid.height());
-            var data = this._process_data(this.grid.mmGrid("rows", true));
+            var w = this.gantt_opts.cellWidth;
+            if (this.scale == 'month')
+                w = 2*w;
+            this.drawGrid(w);
             this.drawGantt(data);
+            
+            /* 恢复原来的滚动位置 */
+            this.gantt.parent().scrollTop(top);
+            this.gantt.parent().scrollLeft(left);
+            this.grid.parent().scrollTop(top);
+            
         }
         , drawGantt: function(data){
             var that = this;
@@ -498,15 +505,10 @@
         }
 
         , onTaskClickHandler: function(d){
-            this.grid.mmGrid('select', this.ganttIds[d.id]);
-        }
-        
-        , appendRows: function(childData, parentId) {
-            var childData2 = [];
-            $.extend(true, childData2, childData);
-            var mmgrid = this.gantt.mmGrid();
-            var parent = mmgrid.findItem(parentId);
-            mmgrid.addChild(childData, parent);
+            if(this.grid.mmGrid('isSelected', this.ganttIds[d.id]))
+                this.grid.mmGrid('deselect', this.ganttIds[d.id]);
+            else
+                this.grid.mmGrid('select', this.ganttIds[d.id]);
         }
         
         , onClickHandler: function(rowObj) {
@@ -550,7 +552,6 @@
                 nowrap: true,
                 treeColumn: this.grid_opts.treeColumn,
                 fitColWidth: true,
-                idField: 'id',
                 height: '100%',
                 showBackboard: false,
                 autoLoad: false,
@@ -570,14 +571,17 @@
             this.gantt_panel.find('.mmg-bodyWrapper').append(this.gantt2);
             //初始化d3 svg
             this.draw = d3.select(this.gantt2.get(0)).append('svg');
+            
+            this.addSyncScrollEvent();
         }
         
         , _process_data: function(source){
             var data = [];
             var ids = {};
             var depends = [];
-            var x;
+            var x, k, i, de_ids;
             var opts = this.gantt_opts;
+            var opts_grid = this.grid_opts;
             var that = this;
             
             $.each(source, function(index, d){
@@ -588,7 +592,7 @@
                 x['finish_percent'] = d[opts.finishPercentName],
                 x['finish_end_date'] = d[opts.realEndDateName];
                 that._convert_date(x);
-                x['id'] = d.id;
+                x['id'] = d[opts.idField || opts_grid.idField];
                 x['title'] = d[opts.titleName];
                 
                 if (opts.group){
@@ -615,38 +619,28 @@
                     x['color'] = '';
                 
                 //处理依赖
-                var de_ids = d[opts.dependTaskName];
+                de_ids = d[opts.dependTaskName];
                 if (de_ids){
                     //k应该是序号，从1开始
-                    for(var i=0; i<de_ids.split(',').length; i++){
-                        var k = parseInt(de_ids[i]);
-                        if (k && k>0 && k<=source.length){
-                            depends.push([k-1, data.length]);
+                    var _ids = de_ids.split(',');
+                    
+                    for(i=0; i<_ids.length; i++){
+                        k = _ids[i];
+                        if (k){
+                            depends.push([_ids[i], x.id]);
                         }
                     }
                 }
                 data.push(x);
                 
-                ids[x.id] = data.length - 1;
+                ids[x.id] = x;
             });
             
-            this.ganttData = data;
+//            this.ganttData = data;
             this.ganttIds = ids;
             this.depends = depends;
             
             return data;
-        }
-        , loadGanttData: function(data, refresh) {
-            this.grid.trigger('resize');
-            this.draw
-                .attr('width', parseInt(this.gantt.get(0).style.width))
-                .attr('height', this.grid.height());
-            var w = this.gantt_opts.cellWidth;
-            if (this.scale == 'month')
-                w = 2*w;
-            this.drawGrid(w);
-            this.drawGantt(data);
-            this.addSyncScrollEvent();
         }
             
         , toToday: function() {
@@ -657,32 +651,33 @@
             
         , redraw: function(scale) {
 
-            this.scale = scale;
-            this.testabc = 222;
-            this.updateDate = new Date();
-            var data = this._process_data(this.grid.mmGrid("rows", true)); 
-            this.getGanttRange(data);
-            this.initGanttGrid();
-            this.loadGanttData(data);
+            this.redrawGantt(scale);
         }
         
         , _convert_date: function(data){
             var opts = this.gantt_opts;
             
-            data.beginTime = this.dateDeserialize(data[opts.planBeginDateName]);
-            data.endTime = this.dateDeserialize(data[opts.planEndDateName]);
-            if (data[opts.realBeginDateName]) {
-                data.startTime = this.dateDeserialize(data[opts.realBeginDateName]);
+            data.beginTime = this.dateDeserialize(data.begin_date);
+            data.endTime = this.dateDeserialize(data.end_date);
+            if (data.finish_begin_date) {
+                data.startTime = this.dateDeserialize(data.finish_begin_date);
             }
-            if (data[opts.realEndDateName]) {
-                data.doneTime = this.dateDeserialize(data[opts.realEndDateName]);
+            if (data.finish_end_date) {
+                data.doneTime = this.dateDeserialize(data.finish_end_date);
             }
         }
                 
         , getMaxDate: function(data) {
             var maxDate = null;
+            var d;
             for(var i=0; i<data.length; i++) {
-                maxDate = maxDate < data[i].endTime ? data[i].endTime : maxDate;
+                if (data[i].beginTime && data[i].endTime)
+                    d = data[i].beginTime > data[i].endTime ? data[i].beginTime : data[i].endTime;
+                else if(data[i].beginTime && !data[i].endTime)
+                    d = data[i].beginTime;
+                else
+                    d = data[i].endTime || null;
+                maxDate = maxDate < d ? d : maxDate;
             }
             maxDate = maxDate < this.today ? new Date(this.today.getTime()) : new Date(maxDate.getTime());
             switch (this.scale) {
@@ -708,8 +703,15 @@
         
         , getMinDate: function(data) {
             var minDate = null;
+            var d;
             for(var i=0; i<data.length; i++) {
-                minDate = minDate > data[i].beginTime || minDate === null ? data[i].beginTime : minDate;
+                if (data[i].beginTime && data[i].endTime)
+                    d = data[i].beginTime < data[i].endTime ? data[i].beginTime : data[i].endTime;
+                else if(data[i].beginTime && !data[i].endTime)
+                    d = data[i].beginTime;
+                else
+                    d = data[i].endTime || null;
+                minDate = minDate > d || minDate === null ? d : minDate;
             }
             minDate = minDate > this.today || minDate === null ? new Date(this.today.getTime()) : new Date(minDate.getTime());
             switch (this.scale) {
@@ -1123,7 +1125,7 @@
             months: ["一月", "二月", "三月", "四月", "五月", "六月", 
                 "七月", "八月", "九月", "十月", "十一月", "十二月"]
             , dow: ["日", "一", "二", "三", "四", "五", "六"]
-            , scale             : 'day'
+            , scale             : 'week'
             , gridHeight        : 450
             , cellWidth         : 24
             , treeField         : 'name'
@@ -1148,6 +1150,7 @@
             , group: null       //用来标记是否是group元素，可以是一个函数
             , tooltipHtml: null //回调函数，用来显示tooltip的文本，格式为 function (d){return html;}
                                 //   d为正在处理的数据项，如果不提供则使用缺省的显示
+            , monitorFields: [] //如果数组为空，或者更新的字段名在数组中，则更新甘特图
         }
     }
     

@@ -163,7 +163,7 @@
             $(this).data('event.editable', settings.event);
             
             /* If element is empty add something clickable (if requested) */
-            if (!$.trim($(this).html())) {
+            if (!$.trim($(this).html()) && settings.placeholder) {
                 $(this).html(settings.placeholder);
             }
             
@@ -348,7 +348,7 @@
                     var changed = false;
                     //check settings.modified function to see if the data is changed
                     if(settings.modified){
-                        changed = settings.modified(input_val, settings);
+                        changed = settings.modified.apply(self, [input_val, settings]);
                     }
                     if (!changed){
                         /*t = setTimeout(function() {
@@ -451,7 +451,7 @@
                     if (false !== onreset.apply(form, [settings, self])) { 
                         $(self).html(self.revert);
                         self.editing   = false;
-                        if (!$.trim($(self).html())) {
+                        if (!$.trim($(self).html()) && settings.placeholder) {
                             $(self).html(settings.placeholder);
                         }
                         /* Show tooltip again. */
@@ -574,6 +574,8 @@
             select: {
                element : function(settings, original) {
                     var select = $('<select />');
+                    if (settings.width  != 'none') { select.width(settings.width);  }
+                    if (settings.height != 'none') { select.height(settings.height); }
                     $(this).append(select);
                     return(select);
                 },

@@ -4,7 +4,7 @@
 .gantt .panel-body{border:0}
 .gantt .layout-split-west{border-right:5px solid #eee}
 .gantt .mmGrid .mmg-bodyWrapper {overflow-x:scroll;overflow-y:auto}
-.gantt .gantttree-panel .mmGrid .mmg-bodyWrapper {overflow-y:hidden;}
+/*.gantt .gantttree-panel .mmGrid .mmg-bodyWrapper {overflow-y:hidden;}*/
 .gantt .datagrid-view2 .datagrid-body{overflow-x:scroll}
 .gantt .gantttree-panel .datagrid-view2 .datagrid-body{overflow-y:hidden}
 .gantt .navigation{float:right;padding-right:100px;padding-top:10px}
@@ -57,7 +57,7 @@ div.gantt-tooltip {
 position: absolute;
 text-align: left;
 width: 150px;
-height: 46px;
+height: 60px;
 padding: 4px;
 font-size: 12px;
 background: #ffd;
