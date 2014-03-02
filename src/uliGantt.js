@@ -298,7 +298,7 @@
             scale = scale || this.gantt_opts.scale;
             var data = this._process_data(this.grid.mmGrid("rows", true));
             //计划最大，最小日期
-            this.getGanttRange(data);
+            this.getGanttRange(data, scale);
             if (oldStartDate != this.startDate || oldEndDate != this.endDate || scale != this.scale){
                 this.scale = scale;
                 this.initGanttGrid();
@@ -522,10 +522,13 @@
             var that = this;
             var gridview = this.gantt;
             var gridcontainer = gridview.parent().parent();
-            //增加今日提示
-            var leftMargin = this.getTodayLeftMargin();
-            gridcontainer.append("<div class='gantt-today-marker' style='z-index:100;left:" + 
-                leftMargin+"px'><div title='"+ this.formatDate(this.today) +"'>今日</div></div>");
+
+            if(this.gantt_opts.todayLineFlag) {
+                //增加今日提示
+                var leftMargin = this.getTodayLeftMargin();
+                gridcontainer.append("<div class='gantt-today-marker' style='z-index:100;left:" + 
+                    leftMargin+"px'><div title='"+ this.formatDate(this.today) +"'>今日</div></div>");                
+            }
             
             var treeview = this.grid;
             var treecontainer = treeview.parent().parent();
@@ -667,7 +670,7 @@
             }
         }
                 
-        , getMaxDate: function(data) {
+        , getMaxDate: function(data, scale) {
             var maxDate = null;
             var d;
             for(var i=0; i<data.length; i++) {
@@ -679,8 +682,12 @@
                     d = data[i].endTime || null;
                 maxDate = maxDate < d ? d : maxDate;
             }
-            maxDate = maxDate < this.today ? new Date(this.today.getTime()) : new Date(maxDate.getTime());
-            switch (this.scale) {
+            if(this.gantt_opts.todayLineFlag) {            
+                maxDate = maxDate < this.today ? new Date(this.today.getTime()) : new Date(maxDate.getTime());
+            } else {
+                maxDate = new Date(maxDate.getTime())
+            }
+            switch (scale) {
                 case "day":
                     maxDate.setDate(maxDate.getDate() + 3);
                     break;
@@ -701,7 +708,7 @@
             return maxDate;
         }
         
-        , getMinDate: function(data) {
+        , getMinDate: function(data, scale) {
             var minDate = null;
             var d;
             for(var i=0; i<data.length; i++) {
@@ -713,8 +720,13 @@
                     d = data[i].endTime || null;
                 minDate = minDate > d || minDate === null ? d : minDate;
             }
-            minDate = minDate > this.today || minDate === null ? new Date(this.today.getTime()) : new Date(minDate.getTime());
-            switch (this.scale) {
+            if(this.gantt_opts.todayLineFlag) {
+                minDate = minDate > this.today || minDate === null ? new Date(this.today.getTime()) : new Date(minDate.getTime());    
+            } else {
+                minDate = new Date(minDate.getTime())
+            }
+            
+            switch (scale) {
                 case "day":
                     minDate.setDate(minDate.getDate() - 3);
                     break;
@@ -736,10 +748,10 @@
             
         }
         
-        , getGanttRange: function(data) {
+        , getGanttRange: function(data, scale) {
             //todo 最大时间和最小时间是否可以优化
-            this.startDate = this.getMinDate(data);
-            this.endDate = this.getMaxDate(data);
+            this.startDate = this.getMinDate(data, scale);
+            this.endDate = this.getMaxDate(data, scale);
         }
         
         /* 获得时间段的坐标 */
@@ -1126,6 +1138,7 @@
                 "七月", "八月", "九月", "十月", "十一月", "十二月"]
             , dow: ["日", "一", "二", "三", "四", "五", "六"]
             , scale             : 'week'
+            , todayLineFlag     : true
             , gridHeight        : 450
             , cellWidth         : 24
             , treeField         : 'name'
