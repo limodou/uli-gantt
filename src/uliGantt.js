@@ -1024,18 +1024,27 @@
                 var month = range[0].getMonth();
                 var day = range[0];
                 var lastBeginDay = range[0];
+                var monthTitle;
                 
-                var yearArr = [], monthArr = [], dayArr = [], weekArr = [];
+                var yearArr = [], monthArr = [], dayArr = [], weekArr = [], weekDayArr = [];
                 var daysInYear = 0, daysInMonth = 0;
                 
                 for (var i = 0; i < range.length; i++) {
                     var rday = range[i];
                     var getDay = rday.getDay();
                     dayArr.push(getOneCell('day', cellWidth, rday.getDate()));
+                    weekDayArr.push(getOneCell('week-day', cellWidth, opt.dow[rday.getDay()]));
                     
                     // Fill months
                     if (rday.getMonth() !== month) {
-                        monthArr.push(getOneCell('month', cellWidth*daysInMonth , opt.months[month])); 
+                        
+                        if(opt.showWeekDay) {
+                            monthTitle = year + opt.yearStr + opt.months[month]
+                        } else {
+                            monthTitle = opt.months[month]
+                        }
+
+                        monthArr.push(getOneCell('month', cellWidth*daysInMonth , monthTitle)); 
                         month = rday.getMonth();
                         daysInMonth = 0;
                         lastBeginDay = rday;
@@ -1044,7 +1053,7 @@
             
                     // Fill years
                     if (rday.getFullYear() !== year) {
-                        yearArr.push(getOneCell('year', cellWidth*daysInYear, year)); 
+                        yearArr.push(getOneCell('year', cellWidth*daysInYear, year + opt.yearStr)); 
                         year = rday.getFullYear();
                         daysInYear = 0;
                     }
@@ -1054,14 +1063,27 @@
                 
                 
                 // Last month
-                monthArr.push(getOneCell('month', cellWidth*daysInMonth , opt.months[month])); 
+                if(opt.showWeekDay) {
+                    monthTitle = year + opt.yearStr + opt.months[month]
+                } else {
+                    monthTitle = opt.months[month]
+                }
+
+                monthArr.push(getOneCell('month', cellWidth*daysInMonth , monthTitle)); 
                 // Last year
                 yearArr.push(getOneCell('year', cellWidth*daysInYear, year)); 
                 totalWidth = range.length*cellWidth*cellScale;
-                titleHtml = 
-                    "<div class='mmgantt-date-row year' style='width:"+totalWidth+"px'>"+yearArr.join("")+"</div>" +
-                    "<div class='mmgantt-date-row month' style='width:"+totalWidth+"px'>"+monthArr.join("")+"</div>" +
-                    "<div class='mmgantt-date-row day' style='width:"+totalWidth+"px'>"+dayArr.join("")+"</div>";
+                titleHtml = []
+                if(!opt.showWeekDay) {
+                    titleHtml.push("<div class='mmgantt-date-row year' style='width:"+totalWidth+"px'>"+yearArr.join("")+"</div>");
+                    titleHtml.push("<div class='mmgantt-date-row month' style='width:"+totalWidth+"px'>"+monthArr.join("")+"</div>");
+                    titleHtml.push("<div class='mmgantt-date-row day' style='width:"+totalWidth+"px'>"+dayArr.join("")+"</div>");
+                } else {
+                    titleHtml.push("<div class='mmgantt-date-row month' style='width:"+totalWidth+"px'>"+monthArr.join("")+"</div>");
+                    titleHtml.push("<div class='mmgantt-date-row day' style='width:"+totalWidth+"px'>"+weekDayArr.join("")+"</div>");
+                    titleHtml.push("<div class='mmgantt-date-row day' style='width:"+totalWidth+"px'>"+dayArr.join("")+"</div>");
+                }
+                titleHtml = titleHtml.join("")
             }
             
             if(scale == "month" || scale == "month3div" || scale == "month2div") {
@@ -1139,6 +1161,7 @@
         , gantt:{
             months: ["一月", "二月", "三月", "四月", "五月", "六月", 
                 "七月", "八月", "九月", "十月", "十一月", "十二月"]
+            , yearStr: "年"
             , dow: ["日", "一", "二", "三", "四", "五", "六"]
             , scale             : 'week'
             , todayLineFlag     : true
@@ -1146,7 +1169,8 @@
             , cellWidth         : 24
             , treeField         : 'name'
             , treePanelWidth    : 270
-            , weekMidDay        : 3
+            , weekMidDay        : 3         //一周的中间天是星期三
+            , showWeekDay       : false     //在日视图中显示星期几
             , toolbar           : null
             , planBeginDateName : 'begin_date'
             , planEndDateName   : 'end_date'
