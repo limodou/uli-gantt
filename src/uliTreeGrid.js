@@ -35,6 +35,7 @@
             iconIndent: 16,     //图标的宽度
             expandMethod: 'GET',//自动展开子结点ajax请求方式
             expandParam: 'id',  //自动展开子结点ajax请求参数名
+            expandArgs: null, //expand参数获取回调，将与param合并发送后台，应return一个object
             expandFilter: null, //自动展开数据预处理
             expandURL: null     //自动展开子结点URL 
             
@@ -78,6 +79,11 @@
                 var $tbody = this.$body.find('tbody');
                 var nodes = [];
                 var pos;
+                var event_type;
+                if (this.EventExpand)
+                    event_type = 'added.expand';
+                else
+                    event_type = 'added';
                 
                 position = position || 'after';
                 
@@ -113,7 +119,7 @@
                     e = this._trigger(this.$body, 'add', item);
                     if(e.isDefaultPrevented()) return;
                     $tbody.append($tr);
-                    this._trigger($tr, 'added', item);
+                    this._trigger($tr, event_type, item);
                 }
                 else{
                     //如果定义了父结点值，查找父结点是否存在，如果不存在则抛出错误
@@ -161,7 +167,7 @@
                         }
                         
                         this._updateIndex();
-                        this._trigger($tr, 'added', item);
+                        this._trigger($tr, event_type, item);
                         
                     }
                 }
@@ -191,7 +197,7 @@
                     parent.data('loaded', true);
                     
                     this._updateIndex();
-                    this._trigger($tr, 'added', item);
+                    this._trigger($tr, event_type, item);
                     
                     var key = parent.attr(this.opts.keyAttrName);
                     this._setParentValue($tr, key);
@@ -675,17 +681,20 @@
                             $(this).removeClass('ui-helper-hidden');
                     
                         });
+                        
+                        this._trigger(node, 'expanded', data);
+                        
                     }
                     //如果没有子结点，则判断是否装过数据，data('loaded')
                     //如果装过数据，则忽略
                     else{
                         if(!node.data('loaded')){
-                            this.ajaxDo('expand', data);
+                            this.doExpand('expand', node, data);
                             node.data('loaded', true);
-                        }
+                        }else
+                            this._trigger(node, 'expanded', data);
                     }
                     
-                    this._trigger(node, 'expanded', data);
                 }
             
               return node;
@@ -696,23 +705,26 @@
                 return this.expand(node);
             }
             
-            , ajaxDo: function (action, node) {
+            , doExpand: function (action, node, data) {
                 if(this.opts.expandURL) {
                     var $self = this;
-                    var data = {};
+                    var para = {};
                     if (typeof this.opts.expandParam === 'string'){
-                        data[this.opts.expandParam] = node[this.opts.expandParam];
+                        para[this.opts.expandParam] = data[this.opts.expandParam];
                     }else if($.isPlainObject(this.opts.expandParam)){
                         $.each(this.opts.expandParam, function(k, v){
-                            data[k] = node[v];
+                            para[k] = data[v];
                         });
                     }
+                    var args = {};
+                    if($.isFunction(this.opts.expandArgs))
+                        args = this.opts.expandArgs();
                     
                     $.ajax({
                         url: this.opts.expandURL,
                         type: this.opts.expandMethod || 'GET',
                         dataType:'json',
-                        data:data
+                        data:$.extend(true, para, args)
                     })
                     .done(function(r){
                         if($.isArray(r) || !r.success) {
@@ -723,12 +735,17 @@
                             if(r.data){
                                 var parentId = node[$self.opts.idField];
                                 var parent = $self.findItem(parentId);
+                                var d = r.data;
+                                $self.EventExpand = true;
                                 if($.isFunction($self.opts.expandFilter)) {
-                                    var data = $self.opts.expandFilter(r.data, parentId);
-                                    $self.addChild(data, parent)
+                                    d = $self.opts.expandFilter(r.data, parentId);
+                                    $self.addChild(d, parent)
                                 } else {
                                     $self.addChild(r.data, parent)
                                 }
+                                $self.EventExpand = false;
+                                $self._trigger(node, 'expanded', d);
+                                
                             }
                             if($self.opts.showMessage && r.message){
                                 $self.opts.showMessage(r.message);
@@ -749,7 +766,6 @@
                 } else {
                     
                 }
-                //console.log('ajaxdo', node, action);
             }
             
             , selectedItem: function(){

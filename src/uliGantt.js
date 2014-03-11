@@ -125,7 +125,6 @@
                 , fitColWidth: true
                 , height: '100%'
                 , expandURL: this.grid_opts.url
-                , expandMethod: 'POST'
                 , autoLoad: false
                 , clickableNodeNames: false
             }
@@ -173,34 +172,72 @@
             return s.join(" ");
         }
         
+        /*
+         * 増加周末画阴影的处理，当scale为day时
+         * d 为宽度
+         */
         , drawGrid: function(d, x1, y1){
             var w = parseInt(this.draw.attr('width'));
             var h = parseInt(this.draw.attr('height'));
             
             x1 = x1 || 0;
             y1 = y1 || 0;
-            var x = d3.scale.linear().domain([0, w/d]);
 
-            var nodes = this.draw.selectAll('line.xline')
-                .data(x.ticks(w/d));
+            if (this.scale != 'day'){
+                var x = d3.scale.linear().domain([0, w/d]);
 
-            nodes
-                .attr('x1', function(i){return i*d-0.5+x1;})
-                .attr('y1', y1)
-                .attr('x2', function(i){return i*d-0.5+x1;})
-                .attr('y2', h+y1);
+                var nodes = this.draw.selectAll('line.xline')
+                    .data(x.ticks(w/d));
 
-            //draw y line
-            nodes.enter()
-                .append('line')
-                .attr('class', 'xline')
-                .attr('x1', function(i){return i*d-0.5+x1;})
-                .attr('y1', y1)
-                .attr('x2', function(i){return i*d-0.5+x1;})
-                .attr('y2', h+y1);
+                nodes
+                    .attr('x1', function(i){return i*d-0.5+x1;})
+                    .attr('y1', y1)
+                    .attr('x2', function(i){return i*d-0.5+x1;})
+                    .attr('y2', h+y1);
 
-            nodes.exit().remove();
+                
+                //draw y line
+                nodes.enter()
+                    .append('line')
+                    .attr('class', 'xline')
+                    .attr('x1', function(i){return i*d-0.5+x1;})
+                    .attr('y1', y1)
+                    .attr('x2', function(i){return i*d-0.5+x1;})
+                    .attr('y2', h+y1);
 
+                nodes.exit().remove();
+            }
+            else{
+                var x = d3.scale.linear().domain([0, w/d]);
+                var start = this.startDate.getDay();
+                var data = $.map(x.ticks(w/d), function(i){
+                    var t = (i + start) % 7;
+                    if (t == 0 || t == 6) return i;
+                    else return null; 
+                });
+
+                var nodes = this.draw.selectAll('rect.xbox')
+                    .data(data);
+
+                nodes
+                    .attr('x', function(i){return i*d-0.5+x1;})
+                    .attr('y', y1)
+                    .attr('width', d-1.5)
+                    .attr('height', h);
+
+
+                //draw y line
+                nodes.enter()
+                    .append('rect')
+                    .attr('class', 'xbox')
+                    .attr('x', function(i){return i*d-0.5+x1;})
+                    .attr('y', y1)
+                    .attr('width', d-1.5)
+                    .attr('height', h);
+                
+                nodes.exit().remove();
+                
+            }
         }
 
         /*
@@ -298,11 +335,11 @@
             var top = this.gantt.parent().scrollTop();
             var left = this.gantt.parent().scrollLeft();
             
-            scale = scale || this.gantt_opts.scale;
+            scale = scale || this.scale;
             var data = this._process_data(this.grid.mmGrid("rows", true));
             //计划最大，最小日期
             this.getGanttRange(data, scale);
-            if (oldStartDate != this.startDate || oldEndDate != this.endDate || scale != this.scale){
+            if ((oldStartDate-this.startDate!=0) || (oldEndDate-this.endDate!=0) || scale != this.scale){
                 this.scale = scale;
                 this.initGanttGrid();
             }
@@ -1080,8 +1117,8 @@
                     titleHtml.push("<div class='mmgantt-date-row day' style='width:"+totalWidth+"px'>"+dayArr.join("")+"</div>");
                 } else {
                     titleHtml.push("<div class='mmgantt-date-row month' style='width:"+totalWidth+"px'>"+monthArr.join("")+"</div>");
-                    titleHtml.push("<div class='mmgantt-date-row day' style='width:"+totalWidth+"px'>"+weekDayArr.join("")+"</div>");
                     titleHtml.push("<div class='mmgantt-date-row day' style='width:"+totalWidth+"px'>"+dayArr.join("")+"</div>");
+                    titleHtml.push("<div class='mmgantt-date-row day' style='width:"+totalWidth+"px'>"+weekDayArr.join("")+"</div>");
                 }
                 titleHtml = titleHtml.join("")
             }
@@ -1170,7 +1207,7 @@
             , treeField         : 'name'
             , treePanelWidth    : 270
             , weekMidDay        : 3         //一周的中间天是星期三
-            , showWeekDay       : false     //在日视图中显示星期几
+            , showWeekDay       : true     //在日视图中显示星期几
             , toolbar           : null
             , planBeginDateName : 'begin_date'
             , planEndDateName   : 'end_date'

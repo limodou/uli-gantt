@@ -16,6 +16,7 @@ It depends on:
 
 ## Screenshots
 
+![gantt](https://raw.github.com/limodou/uli-gantt/master/images/gantt_01.jpg)
 
 ## Usage
 
