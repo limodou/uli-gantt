@@ -91,8 +91,7 @@
                 data:[],
                 dataType:"json",
                 success: $.proxy(function(data){
-                    var source = data[this.grid_opts.root];
-                    this.loadItems(source);
+                    this.loadItems(data);
                 }, this)
             });
         } else {

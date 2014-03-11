@@ -1,0 +1,93 @@
+[{
+    "name": "需求阶段",
+    "begin_date": "2013-1-5",
+    "end_date": "2014-2-1",
+    "pre_task": "",
+    "type": "1",
+    "status": "1",
+    "percent": 60,
+    "id": 1
+}, {
+    "name": "需求分析",
+    "begin_date": "2013-1-5",
+    "end_date": "2013-1-20",
+    "finish_begin_date": "2013-1-10",
+    "finish_end_date": "2013-1-20",
+    "pre_task": "",
+    "type": "1",
+    "status": "3",
+    "percent": 60,
+    "_parent": 1,
+    "id": 2
+}, {
+    "name": "需求分析评审",
+    "begin_date": "",
+    "end_date": "2013-2-25",
+    "pre_task": "",
+    "pre_task": "2",
+    "type": "2",
+    "status": "2",
+    "percent": 30,
+    "_parent": 1,
+    "id": 3
+}, {
+    "name": "开发阶段",
+    "begin_date": "2013-2-5",
+    "end_date": "2013-5-30",
+    "pre_task": "",
+    "type": "1",
+    "status": "1",
+    "percent": 0,
+    "id": 4
+}, {
+    "name": "概要设计",
+    "begin_date": "2013-2-10",
+    "end_date": "2013-2-20",
+    "pre_task": "",
+    "finish_begin_date": "2013-2-10",
+    "type": "1",
+    "status": "1",
+    "percent": 40,
+    "_parent": 4,
+    "id": 5
+}, {
+    "name": "详细设计",
+    "begin_date": "2013-2-15",
+    "end_date": "2013-2-25",
+    "pre_task": "5",
+    "type": "1",
+    "status": "2",
+    "percent": 0,
+    "_parent": 4,
+    "id": 6
+}, {
+    "name": "开发",
+    "begin_date": "2013-3-11",
+    "end_date": "2013-4-20",
+    "pre_task": "",
+    "type": "1",
+    "status": "1",
+    "percent": 0,
+    "_parent": 4,
+    "id": 7
+}, {
+    "name": "编码",
+    "begin_date": "2013-1-5",
+    "end_date": "2013-2-1",
+    "pre_task": "",
+    "type": "1",
+    "status": "1",
+    "percent": 0,
+    "_parent": 7,
+    "id": 8
+}, {
+    "name": "单元测试",
+    "begin_date": "2013-1-5",
+    "end_date": "2013-2-1",
+    "pre_task": "",
+    "type": "1",
+    "status": "1",
+    "percent": 0,
+    "_parent": 7,
+    "id": 9
+}]

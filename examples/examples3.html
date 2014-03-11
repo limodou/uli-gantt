@@ -139,7 +139,10 @@
 
                     , cols: cols
                     , method: 'get'
-                    , items: items
+                    // 直接从array中加载数据
+                    //, items: items
+                    // ajax方式加载数据
+                    , url: "data/gantt.json"
                     , checkCol: true
                     , fitColWidth: true
 //                    , paginator: $('#paginator').mmPaginator()
