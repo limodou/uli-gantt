@@ -91,7 +91,11 @@
                 data:[],
                 dataType:"json",
                 success: $.proxy(function(data){
-                    this.loadItems(data);
+                    var items = data;
+                    if($.isArray(data[this.grid_opts.root])){
+                        items = data[this.grid_opts.root];
+                    }
+                    this.loadItems(items);
                 }, this)
             });
         } else {
