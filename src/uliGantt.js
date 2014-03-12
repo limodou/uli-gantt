@@ -84,22 +84,24 @@
         this.initTreeGrid();
 
         //load data
-        if(!this.grid_opts.items) {
-            $.ajax({
-                type:"GET",
-                url:this.grid_opts.url,
-                data:[],
-                dataType:"json",
-                success: $.proxy(function(data){
-                    var items = data;
-                    if($.isArray(data[this.grid_opts.root])){
-                        items = data[this.grid_opts.root];
-                    }
-                    this.loadItems(items);
-                }, this)
-            });
-        } else {
-            this.loadItems(this.grid_opts.items);
+        if (this.grid_opts.autoLoad){
+            if(!this.grid_opts.items) {
+                $.ajax({
+                    type:"GET",
+                    url:this.grid_opts.url,
+                    data:[],
+                    dataType:"json",
+                    success: $.proxy(function(data){
+                        var items = data;
+                        if($.isArray(data[this.grid_opts.root])){
+                            items = data[this.grid_opts.root];
+                        }
+                        this.loadItems(items);
+                    }, this)
+                });
+            } else {
+                this.loadItems(this.grid_opts.items);
+            }
         }
         
         return this;
@@ -125,11 +127,12 @@
                 , fitColWidth: true
                 , height: '100%'
                 , expandURL: this.grid_opts.url
-                , autoLoad: false
                 , clickableNodeNames: false
             }
             
-            var settings = $.extend(true, this.grid_opts, grid_settings);
+            var settings = $.extend(true, grid_settings, this.grid_opts);
+            //disable autoload in mmgrid
+            settings.autoLoad = false;
             var mmgrid = this.grid.mmGrid(settings);
             
             var events = ['added', 'updated', 'deleted', 'indented', 
