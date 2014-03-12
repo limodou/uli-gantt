@@ -35,11 +35,9 @@
 
         var that = this;
         var element = $(content);
-        
         this.element = element;
-        this.opts = options;
-        this.grid_opts = this.opts.grid;
-        this.gantt_opts = this.opts.gantt;
+        this.grid_opts = options.grid;
+        this.gantt_opts = options.gantt;
         
         //初始化今天日期
         this.today = this.gantt_opts.today;
@@ -85,7 +83,7 @@
 
         //load data
         if (this.grid_opts.autoLoad){
-            if(!this.grid_opts.items) {
+            if(!this.grid_opts.items || this.grid_opts.items.length==0) {
                 $.ajax({
                     type:"GET",
                     url:this.grid_opts.url,
@@ -126,14 +124,17 @@
                 nowrap: true
                 , fitColWidth: true
                 , height: '100%'
-                , expandURL: this.grid_opts.url
                 , clickableNodeNames: false
             }
             
-            var settings = $.extend(true, grid_settings, this.grid_opts);
+            this.grid_opts = $.extend(true, {}, $.fn.mmGrid.defaults, this.grid_opts, grid_settings);
+            this.grid_opts.expandURL = this.grid_opts.expandURL || this.grid_opts.url;
+            
             //disable autoload in mmgrid
-            settings.autoLoad = false;
-            var mmgrid = this.grid.mmGrid(settings);
+            var old_autoLoad = this.grid_opts.autoLoad;
+            this.grid_opts.autoLoad = false;
+            var mmgrid = this.grid.mmGrid(this.grid_opts);
+            this.grid_opts.autoLoad = old_autoLoad;
             
             var events = ['added', 'updated', 'deleted', 'indented', 
                 'unindented', 'upped', 'collapsed', 'expanded', 'loadSuccess']
@@ -609,8 +610,8 @@
             this.element.removeClass("gantt-scale-day gantt-scale-week");
             this.element.addClass("gantt-scale-"+this.scale);
             
-            var settings = $.extend(true, this.gantt_opts, grid_settings);
-            this.gantt.mmGrid(settings);
+            this.gantt_opts = $.extend(true, {}, $.fn.mmGrid.defaults, this.gantt_opts, grid_settings);
+            this.gantt.mmGrid(this.gantt_opts);
             
             this.gantt.hide();
             this.gantt2 = $('<div>');
