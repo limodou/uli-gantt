@@ -984,52 +984,64 @@
                 }
             }
             
-            , select: function(args){
+            , select: function(args, isId){
                 var opts = this.opts;
                 var $body = this.$body;
                 var $head = this.$head;
+                var find;
+                var that = this;
+                var is_selected;
+                var el;
+                var select_all = false;
+                var check_all = true;
             
                 e = this._trigger($body, 'select');
                 if(e.isDefaultPrevented()) return;
 
-                if(typeof args === 'number'){
-                    var $tr = $body.find('tr').eq(args);
-                    if(!opts.multiSelect){
-                        $body.find('tr.selected').removeClass('selected');
-                        if(opts.checkCol){
-                            $body.find('tr > td').find('.mmg-check').prop('checked','');
+                $.each($body.find('tr'), function(index){
+                    el = $(this);
+                    if (typeof args === 'number' && !isId){
+                        find = index === args;
+                    }else if (typeof args === 'function'){
+                        find = args($.data(el, 'item'), index, isId);
+                    }else if (args === undefined || (typeof args === 'string' && args === 'all')){
+                        find = true;
+                        select_all = true;
+                    }else if ($.isArray(args)){
+                        if (isId)
+                            find = args.indexOf(el.attr(that.opts.keyAttrName)) != -1;
+                        else
+                            find = args.indexOf(index) != -1;
+                    }else{
+                        find = el.attr(that.opts.keyAttrName) === args;
+                    }
+                    is_selected = el.hasClass('selected');
+                    if (find){
+                        if (select_all) el.addClass('selected');
+                        else{
+                            if (is_selected) el.removeClass('selected');
+                            else el.addClass('selected');
+                        }
+                    }else{
+                        if(!opts.multiSelect){
+                            if (is_selected)
+                                el.removeClass('selected');
                         }
                     }
-                    if(!$tr.hasClass('selected')){
-                        $tr.addClass('selected');
-                        if(opts.checkCol){
-                            $tr.find('td .mmg-check').prop('checked','checked');
+                    if(opts.checkCol){
+                        if (el.hasClass('selected')){
+                            el.find('td .mmg-check').prop('checked','checked');
+                        }else{
+                            el.find('td .mmg-check').prop('checked','');
+                            check_all = false;
                         }
                     }
-                }else if(typeof args === 'function'){
-                    $.each($body.find('tr'), function(index){
-                        if(args($.data(this, 'item'), index)){
-                            var $this = $(this);
-                            if(!$this.hasClass('selected')){
-                                $this.addClass('selected');
-                                if(opts.checkCol){
-                                    $this.find('td .mmg-check').prop('checked','checked');
-                                }
-                            }
-                        }
-                    });
-                }else if(args === undefined || (typeof args === 'string' && args === 'all')){
-                    $body.find('tr.selected').removeClass('selected');
-                    $body.find('tr').addClass('selected');
-                    $body.find('tr > td').find('.mmg-check').prop('checked','checked');
-                }else{
-                    return;
-                }
-                
-                if(opts.checkCol){
-                    var $checks = $body.find('tr > td').find('.mmg-check');
-                    if($checks.length === $checks.filter(':checked').length){
+                });
+                if (opts.checkCol){
+                    if (check_all){
                         $head.find('th .checkAll').prop('checked','checked');
+                    }else{
+                        $head.find('th .checkAll').prop('checked','');
                     }
                 }
                 
@@ -1037,22 +1049,24 @@
                 
             }
                 //取消选中
-            , deselect: function(args){
+            , deselect: function(args, isId){
                 var opts = this.opts;
                 var $body = this.$body;
                 var $head = this.$head;
+                var $tr;
                 
                 e = this._trigger($body, 'deselect');
                 if(e.isDefaultPrevented()) return;
                 
-                if(typeof args === 'number'){
-                    $body.find('tr').eq(args).removeClass('selected');
+                if(typeof args === 'number' && !isId){
+                    $tr = $body.find('tr').eq(args);
+                    $tr.removeClass('selected');
                     if(opts.checkCol){
-                        $body.find('tr').eq(args).find('td .mmg-check').prop('checked','');
+                        $tr.find('td .mmg-check').prop('checked','');
                     }
                 }else if(typeof args === 'function'){
                     $.each($body.find('tr'), function(index){
-                        if(args($.data(this, 'item'), index)){
+                        if(args($.data(this, 'item'), index, isId)){
                             $(this).removeClass('selected');
                             if(opts.checkCol){
                                 $(this).find('td .mmg-check').prop('checked','');
@@ -1065,7 +1079,13 @@
                         $body.find('tr > td').find('.mmg-check').prop('checked','');
                     }
                 }else{
-                    return;
+                    if (isId){
+                        $tr = this.findItem(args);
+                        $tr.removeClass('selected');
+                        if(opts.checkCol){
+                            $tr.find('td .mmg-check').prop('checked','');
+                        }
+                    }
                 }
                 
                 $head.find('th .checkAll').prop('checked','');

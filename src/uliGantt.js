@@ -549,10 +549,7 @@
         }
 
         , onTaskClickHandler: function(d){
-            if(this.grid.mmGrid('isSelected', this.ganttIds[d.id]))
-                this.grid.mmGrid('deselect', this.ganttIds[d.id]);
-            else
-                this.grid.mmGrid('select', this.ganttIds[d.id]);
+            this.grid.mmGrid('select', ''+d.id, true);
         }
         
         , onClickHandler: function(rowObj) {
