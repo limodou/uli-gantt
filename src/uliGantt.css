@@ -115,6 +115,10 @@ text-overflow: ellipsis;
     width: 26px;
     background: url('img/gridline.gif') repeat-y right top;
     height:28px;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    -o-text-overflow: ellipsis;
+    -ms-text-overflow: ellipsis;
 }
 
 .gantt .mmgantt-date-row{
@@ -162,7 +166,7 @@ text-overflow: ellipsis;
 
 
 .gantt .gantttree-panel .mmg-titleWrapper{text-align:center;}
-.gantt .mmg-title{font-weight:normal;}
+.gantt .mmg-title{font-weight:normal;white-space: nowrap;text-overflow: ellipsis;-o-text-overflow: ellipsis;-ms-text-overflow: ellipsis;}
 .gantt.gantt-scale-day .gantttree-panel .mmg-title{font-weight:normal;padding-top:25px;}
 .gantt.gantt-scale-week .gantttree-panel .mmg-title{font-weight:normal;padding-top:25px;}
 .gantt.gantt-scale-month .gantttree-panel .mmg-title{font-weight:normal;padding-top:20px;}

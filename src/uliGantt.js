@@ -730,12 +730,22 @@
             }
             switch (scale) {
                 case "day":
+
                     maxDate.setDate(maxDate.getDate() + 3);
+                    if(maxDate.getDate()<=3){
+                        maxDate.setDate(4);
+                    }
+
                     break;
                 case "week":
                     maxDate.setDate(maxDate.getDate() + 7*2);
                     maxDate = this.getDayForWeek(maxDate);
+
+                    if(maxDate.getDate()<=7) {
+                        maxDate.setDate(maxDate.getDate() + 7)
+                    }
                     maxDate.setDate(maxDate.getDate() + 3);
+
                     break;
                 case "month":
                     var bd = new Date(maxDate.getFullYear(), maxDate.getMonth(), 1);
@@ -769,11 +779,20 @@
             
             switch (scale) {
                 case "day":
-                    minDate.setDate(minDate.getDate() - 3);
+                    if(minDate.getDate() < 4) {
+                        minDate.setDate(-3)
+                    } else {
+                        minDate.setDate(minDate.getDate() - 3);    
+                    }
+
                     break;
                 case "week":
-                    minDate.setDate(minDate.getDate() - 2*7);
                     minDate = this.getDayForWeek(minDate);
+                    if(minDate.getDate()<14) {
+                        minDate.setDate(minDate.getDate() - 3*7);
+                    } else {
+                        minDate.setDate(minDate.getDate() - 2*7);    
+                    }
                     minDate.setDate(minDate.getDate() - 3);
                     break;
                 case "month":
