@@ -1172,10 +1172,12 @@
                 var start = (this.$page - 1) * this.$limit;
                 if (append)
                     start = 0;
-                $body.find('tr').each(function(index, el){
-                    var col = $(el).find('td:first');
-                    col.html(index_col.renderer(null, null, start+index));
-                });
+                if ($body.find('.emptyRow').size() == 0){
+                    $body.find('tr').each(function(index, el){
+                        var col = $(el).find('td:first');
+                        col.html(index_col.renderer(null, null, start+index));
+                    });
+                }
             }
         }
 

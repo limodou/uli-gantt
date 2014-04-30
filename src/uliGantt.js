@@ -186,7 +186,7 @@
             
             x1 = x1 || 0;
             y1 = y1 || 0;
-
+            
             if (this.scale != 'day'){
                 var x = d3.scale.linear().domain([0, w/d]);
 
@@ -219,17 +219,17 @@
                     if (t == 0 || t == 6) return i;
                     else return null; 
                 });
-
+                
                 var nodes = this.draw.selectAll('rect.xbox')
                     .data(data);
-
+                
                 nodes
                     .attr('x', function(i){return i*d-0.5+x1;})
                     .attr('y', y1)
                     .attr('width', d-1.5)
                     .attr('height', h);
-
-
+                
+                
                 //draw y line
                 nodes.enter()
                     .append('rect')
@@ -549,13 +549,12 @@
         }
 
         , onTaskClickHandler: function(d){
-            this.grid.mmGrid('select', ''+d.id, true);
-        }
-        
-        , onClickHandler: function(rowObj) {
+            if (this.gantt_opts.selectTaskOnClick)
+                this.grid.mmGrid('select', ''+d.id, true);
             if(this.gantt_opts.onClickHandler) {
-                this.gantt_opts.onClickHandler.call(rowObj);
+                this.gantt_opts.onClickHandler.apply(this, d);
             }
+            
         }
         
         , addSyncScrollEvent: function() {
@@ -1228,7 +1227,8 @@
             , treePanelWidth    : 270
             , weekMidDay        : 3         //一周的中间天是星期三
             , showWeekDay       : true     //在日视图中显示星期几
-            , toolbar           : null
+            , selectTaskOnClick : true      //点击甘特图上的任务时,是否自动切換任务的选中状态
+            , onClickHandler    : null      //点击甘特图上的任务回调函数,叁数为选中的任务数据
             , planBeginDateName : 'begin_date'
             , planEndDateName   : 'end_date'
             , realBeginDateName : 'finish_begin_date'

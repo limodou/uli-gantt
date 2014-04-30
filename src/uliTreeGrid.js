@@ -118,6 +118,8 @@
                 if(this.count() == 0){
                     e = this._trigger(this.$body, 'add', item);
                     if(e.isDefaultPrevented()) return;
+                    this._hideNoData();
+                    this._removeEmptyRow();
                     $tbody.append($tr);
                     this._trigger($tr, event_type, item);
                 }
@@ -362,9 +364,11 @@
                 var $self = this;
                 var nodes = [];
                 var node;
+                var node_items = [];
                 var para = [];
                 var item = this._get_item(index);
                 var data = this.row(index);
+                var indexes = [];
                 
                 //发出beforeDelete事件
                 var e = this._trigger(item, 'delete', data);
@@ -375,11 +379,19 @@
                 if(index == undefined){
                     nodes = $tbody.find('tr');
                 }else{
-                    node = this._get_item(index);
-                    nodes.push(node);
-                    if(cascade){
-                        var children = this.getChildrenAll(node);
-                        Array.prototype.push.apply(nodes, children);
+                    if ($.isArray(index)){
+                        indexes = index;
+                    }else
+                        indexes = [index];
+
+                    for (var i=0; i<indexes.length; i++){
+                        node = this._get_item(indexes[i])
+                        node_items.push(node);
+                        nodes.push(node);
+                        if(cascade){
+                            var children = this.getChildrenAll(node);
+                            Array.prototype.push.apply(nodes, children);
+                        }
                     }
                 }
                 
@@ -398,9 +410,11 @@
                     }
                     
                     //更新所有父结点的样式
-                    var parents = $self.getParents(node);
-                    for(var i=0; i<parents.length; i++){
-                        $self.updateStyle($(parents[i]));
+                    for(var i=0; i<node_items.length; i++){
+                        var parents = $self.getParents(node_items[i]);
+                        for(var j=0; j<parents.length; j++){
+                            $self.updateStyle($(parents[j]));
+                        }
                     }
                     $self._updateIndex();
                     $self._trigger($self.$body, {type:'deleted'}, data);
@@ -893,7 +907,8 @@
             , getParents: function (node) {
                 var parents = [];
                 while(node = this.getParent(node)) {
-                    parents[parents.length] = node[0];
+                    if (node.size() > 0)
+                        parents[parents.length] = node[0];
                 }
                 return parents;
             }
@@ -994,7 +1009,7 @@
                 var el;
                 var select_all = false;
                 var check_all = true;
-            
+                
                 e = this._trigger($body, 'select');
                 if(e.isDefaultPrevented()) return;
 
