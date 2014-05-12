@@ -557,7 +557,7 @@
 
             //选中事件
             var $body = this.$body;
-            $body.on('click dblclick','td',function(e){
+            $body.on('click','td',function(e){
                 //清除选中文本
                 document.selection && document.selection.empty && ( document.selection.empty(), 1)
                 || window.getSelection && window.getSelection().removeAllRanges();
@@ -594,15 +594,7 @@
                 
             });
 
-            $body.on('click','tr > td .mmg-check',function(e){
-                e.stopPropagation();
-                var $this = $(this);
-                if(this.checked){
-                    that.select($($this.parents('tr')[0]).index());
-                }else{
-                    that.deselect($($this.parents('tr')[0]).index());
-                }
-            });
+            this._on_click_checkbox();
 
             //checkbox列
             if(opts.checkCol){
@@ -626,6 +618,20 @@
 
 
         }
+        , _on_click_checkbox: function(){
+            var $body = this.$body;
+            var that = this;
+
+            $body.on('click','tr > td .mmg-check',function(e){
+                e.stopPropagation();
+                var $this = $(this);
+                if(this.checked){
+                    that.select($($this.parents('tr')[0]).index());
+                }else{
+                    that.deselect($($this.parents('tr')[0]).index());
+                }
+            });
+        }
         /*
          * 创建单元编辑器
          * el 为td元素
@@ -645,7 +651,7 @@
             
             function callback(result, settings){
                 if (result.success){
-                    that.onEditorCallback(el.parent()[0], col, result.data);
+                    that.onEditorCallback(el.parent()[0], col, result);
                     //更新单元格
                     if(col.renderer){
                         $(this).html(col.renderer(data[that._getColName(col)],data));
@@ -688,7 +694,7 @@
                 type:type,
                 data:get_data,
                 submitdata:{id:data.id, col_name:col.name},
-                onedit:col.onedit,
+                onedit:col.onedit || that.opts.onCellEdit,
                 name:col.name,
                 callback:callback,
                 modified:modified,
@@ -703,7 +709,7 @@
         }
         , onEditorCallback: function(row, col, value){
             var data = $.data(row, 'item');
-            data[col.name] = value;
+            data[col.name] = value.data;
         }
 
         //用来保存插件的初始化函数
@@ -1474,6 +1480,7 @@
         , backboardMinHeight: 125
         , plugins: [] //插件 插件必须实现 init($mmGrid)和params()方法，参考mmPaginator
         , editable: false //是否可以编辑
+        , onCellEdit: function(){return true;}
         , cellEditUrl: function(){}
     };
 //  event : loadSuccess(e,data), loadError(e, data), cellSelected(e, item, rowIndex, colIndex)

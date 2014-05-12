@@ -782,6 +782,18 @@
                 }
             }
             
+            , selectedRowsIds: function(){
+                var $body = this.$body;
+                var $trs = this.$body.find('tr')
+                var that = this;
+                var selected = [];
+
+                $.each($body.find('tr.selected'), function(index, v){
+                    selected.push($(v).attr(that.opts.keyAttrName));
+                });
+                return selected;
+            }
+
             , selectedItem: function(){
                 var $body = this.$body;
                 return $body.find('tr.selected:first');
@@ -1027,7 +1039,10 @@
                             find = args.indexOf(el.attr(that.opts.keyAttrName)) != -1;
                         else
                             find = args.indexOf(index) != -1;
-                    }else{
+                    }else if (args instanceof jQuery && $(args).is(el)){
+                        find = true;
+                    }
+                    else{
                         find = el.attr(that.opts.keyAttrName) === args;
                     }
                     is_selected = el.hasClass('selected');
@@ -1092,6 +1107,12 @@
                     $body.find('tr.selected').removeClass('selected');
                     if(opts.checkCol){
                         $body.find('tr > td').find('.mmg-check').prop('checked','');
+                    }
+                }else if (args instanceof jQuery){
+                    $tr = $(args);
+                    $tr.removeClass('selected');
+                    if(opts.checkCol){
+                        $tr.find('td .mmg-check').prop('checked','');
                     }
                 }else{
                     if (isId){
@@ -1558,8 +1579,40 @@
 //                var data = $.data(row, 'item');
 //                data[col.name] = value;
                 var d = {};
-                d[col.name] = value;
+                d[col.name] = value.data;
                 this.update(d, row, true);
+                if (value.update_data){
+                    this.mergeData(value.update_data);
+                }
+            }
+
+            /*
+             * 处理checkbox被点击的事件，在tree中，如果同时按下了shift，则自动选中子结点
+             */
+            , _on_click_checkbox: function(){
+                var $body = this.$body;
+                var that = this;
+                var node;
+                var children;
+                var checked;
+
+                $body.on('click','tr > td .mmg-check',function(e){
+                    e.stopPropagation();
+                    node = $($(this).parents('tr')[0]);
+                    if (e.shiftKey && that.opts.multiSelect)
+                        children = that.getChildrenAll(node, true);
+                    else
+                        children = [node];
+                    checked = this.checked;
+                    for(var i=0; i<children.length; i++){
+                        if(checked){
+                            that.select(children[i]);
+                        }else{
+                            that.deselect(children[i]);
+                        }
+
+                    }
+                });
             }
 
             
