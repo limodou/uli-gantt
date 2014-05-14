@@ -661,6 +661,9 @@
                     
                     return true;
                 }
+
+                if (that.opts.onEditorPostCallback)
+                    that.opts.onEditorPostCallback(result, settings);
             }
             function modified(v, settings){
                 if (type == 'bool')

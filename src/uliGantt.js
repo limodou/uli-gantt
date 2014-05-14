@@ -261,6 +261,7 @@
                 var s;
                 var b = that.ganttIds[from];
                 var e = that.ganttIds[to];
+                if (!b || !e) return;
                 var from_index = that.grid.findIndexById(b.id);
                 var to_index = that.grid.findIndexById(e.id);
                 var x = b.margin + b.width;
@@ -285,6 +286,7 @@
                 var s;
                 var b = that.ganttIds[from];
                 var e = that.ganttIds[to];
+                if (!b || !e) return;
                 var from_index = that.grid.findIndexById(b.id);
                 var to_index = that.grid.findIndexById(e.id);
                 var top = (h - that.barHeight)/2;

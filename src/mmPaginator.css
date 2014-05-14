@@ -1,6 +1,7 @@
 .mmPaginator {
     margin: 5px 0;
     white-space: nowrap;
+    position: relative;
 }
 
 .mmPaginator .totalCountLabel{
