@@ -606,17 +606,35 @@
                 return this.collapse(node);
             }
             
-            , collapseAll: function (){
-                var children = this.getChildren();
-                for (var i=0; i<children.length; i++){
-                    this.collapse(children[i]);
+            , collapseAll: function (parent){
+                if(!parent || parent.length==0){
+                    var children = this.getChildren(parent);
+                    var node;
+                    for (var i=0; i<children.length; i++){
+                        node = $(children[i]);
+                        this.collapse(node);
+                        this.collapseAll(node);
+                    }
+                }else{
+                    this.collapse(parent);
                 }
+
             }
             
-            , expandAll: function (){
-                var children = this.getChildren();
-                for (var i=0; i<children.length; i++){
-                    this.expand(children[i]);
+            , expandAll: function (parent){
+                var that = this;
+                if(!parent || parent.length==0){
+                    var children = this.getChildren();
+                    for (var i=0; i<children.length; i++){
+                        this.expandAll($(children[i]));
+                    }
+                }else{
+                    this.expand(parent, function(parent){
+                        var children = that.getChildren(parent);
+                        for (var i=0; i<children.length; i++){
+                            that.expandAll($(children[i]));
+                        }
+                    });
                 }
             }
             
@@ -664,8 +682,9 @@
             
             /*
                 展开一个树结点
+                callback 用于异步调用时的回调
             */
-            , expand: function (node) {
+            , expand: function (node, callback) {
                 if(!node || node.length == 0)
                     return ;
                     
@@ -689,7 +708,7 @@
                     if(children.length > 0){
                         children.each(function() {
                             if($(this).is(".parent.expanded")) {
-                                $self.expand($(this));
+                                $self.expand($(this), callback);
                             }
                     
                             $(this).removeClass('ui-helper-hidden');
@@ -703,7 +722,7 @@
                     //如果装过数据，则忽略
                     else{
                         if(!node.data('loaded')){
-                            this.doExpand('expand', node, data);
+                            this.doExpand('expand', node, data, callback);
                             node.data('loaded', true);
                         }else
                             this._trigger(node, 'expanded', data);
@@ -719,7 +738,7 @@
                 return this.expand(node);
             }
             
-            , doExpand: function (action, node, data) {
+            , doExpand: function (action, node, data, callback) {
                 if(this.opts.expandURL) {
                     var $self = this;
                     var para = {};
@@ -758,6 +777,8 @@
                                     $self.addChild(r.data, parent)
                                 }
                                 $self.EventExpand = false;
+                                if (callback)
+                                    callback(node);
                                 $self._trigger(node, 'expanded', d);
                                 
                             }
@@ -882,7 +903,7 @@
                 的结点
             */
             , getChildren: function(node){
-                if(node)
+                if(node && node.length>0)
                     return $(node).siblings("tr[" + this.opts.parentAttrName + '="' + this.getKey(node) + '"]');
                 else{
                     return this.$body.find('tbody tr:not(['+this.opts.parentAttrName+'])');
