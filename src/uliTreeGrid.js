@@ -37,9 +37,9 @@
             expandParam: 'id',  //自动展开子结点ajax请求参数名
             expandArgs: null, //expand参数获取回调，将与param合并发送后台，应return一个object
             expandFilter: null, //自动展开数据预处理
-            expandURL: null     //自动展开子结点URL 
+            expandURL: null,    //自动展开子结点URL
             
-            
+            altSelectMode: false    //alt 选择模式
         },
         
         _init: function(){
@@ -426,11 +426,16 @@
             
             /*
                 发送事件，如果处理于初始化状态，则不发出事件
+
+                * 增加对frozen_events的判断
             */
             , _trigger: function(el, type, data){
                 var e = $.Event(type);
-                if(!this._initing)
-                    $(el).trigger(e, data);
+                if(!this._initing){
+                    if (!this.frozen_events || this.frozen_events.indexOf(type)==-1){
+                        $(el).trigger(e, data);
+                    }
+                }
                 return e;
             }
             
@@ -524,7 +529,7 @@
                         return ;
                     }else if(typeof(this.opts.bindHandler) == 'string'){
                         data.action = action;
-                        $.ajax({
+                        $.ajaxQueue({
                             url:this.opts.bindHandler,
                             type:'POST',
                             dataType:'json',
@@ -610,11 +615,15 @@
                 if(!parent || parent.length==0){
                     var children = this.getChildren(parent);
                     var node;
+                    e = this._trigger(this.$body, 'collapseAll');
+                    if(e.isDefaultPrevented()) return;
+                    this.frozen(true, ['collapse', 'collapsed']);
                     for (var i=0; i<children.length; i++){
                         node = $(children[i]);
                         this.collapse(node);
-                        this.collapseAll(node);
                     }
+                    this.frozen(false);
+                    this._trigger(this.$body, 'collapsedAll');
                 }else{
                     this.collapse(parent);
                 }
@@ -623,17 +632,27 @@
             
             , expandAll: function (parent){
                 var that = this;
+                var nodes;
                 if(!parent || parent.length==0){
-                    var children = this.getChildren();
-                    for (var i=0; i<children.length; i++){
-                        this.expandAll($(children[i]));
-                    }
+                    nodes = this.getChildren();
                 }else{
-                    this.expand(parent, function(parent){
+                    nodes = [parent];
+                }
+                e = this._trigger(this.$body, 'expandAll');
+                if(e.isDefaultPrevented()) return;
+                this.frozen(true, ['expand', 'expanded']);
+                this._expandAll(nodes);
+                this.frozen(false);
+                this._trigger(this.$body, 'expandedAll');
+            }
+
+            , _expandAll: function(parents){
+                var that = this;
+                for (var i=0; i<parents.length; i++){
+                    var parent = parents[i];
+                    that.expand($(parent), function(flag, parent){
                         var children = that.getChildren(parent);
-                        for (var i=0; i<children.length; i++){
-                            that.expandAll($(children[i]));
-                        }
+                        that._expandAll(children);
                     });
                 }
             }
@@ -682,14 +701,17 @@
             
             /*
                 展开一个树结点
-                callback 用于异步调用时的回调
+                callback 用于异步调用时的回调 (是否异步调用， 当前结点，是否展开)
             */
             , expand: function (node, callback) {
                 if(!node || node.length == 0)
                     return ;
                     
-                if(!node.hasClass('parent')) 
+                if(!node.hasClass('parent')) {
+                    if (callback)
+                        callback(false, node, false);
                     return ;
+                }
                     
                 var $self = this;
                 var data = this.row(node);
@@ -714,7 +736,10 @@
                             $(this).removeClass('ui-helper-hidden');
                     
                         });
-                        
+
+                        if (callback)
+                            callback(false, node, true);
+
                         this._trigger(node, 'expanded', data);
                         
                     }
@@ -728,6 +753,10 @@
                             this._trigger(node, 'expanded', data);
                     }
                     
+                }else{
+                    if (callback)
+                        callback(false, node, false);
+
                 }
             
               return node;
@@ -753,7 +782,7 @@
                     if($.isFunction(this.opts.expandArgs))
                         args = this.opts.expandArgs();
                     
-                    $.ajax({
+                    $.ajaxQueue({
                         url: this.opts.expandURL,
                         type: this.opts.expandMethod || 'GET',
                         dataType:'json',
@@ -778,7 +807,7 @@
                                 }
                                 $self.EventExpand = false;
                                 if (callback)
-                                    callback(node);
+                                    callback(true, node, true);
                                 $self._trigger(node, 'expanded', d);
                                 
                             }
@@ -864,9 +893,10 @@
                     $(node).attr(this.opts.parentAttrName, value);
                     data[this.opts.parentField] = value;
                     parent = this.findItem(value);
-                    if (parent){
-                        parent.data('loaded', true);
-                    }
+                    //是否装载要根据有没有执行expand方法来处理
+                    //if (parent){
+                    //    parent.data('loaded', true);
+                    //}
                 }
                 else{
                     $(node).removeAttr(this.opts.parentAttrName);
@@ -1032,7 +1062,7 @@
                 }
             }
             
-            , select: function(args, isId){
+            , select: function(args, isId, forceSingle){
                 var opts = this.opts;
                 var $body = this.$body;
                 var $head = this.$head;
@@ -1074,7 +1104,7 @@
                             else el.addClass('selected');
                         }
                     }else{
-                        if(!opts.multiSelect){
+                        if(!opts.multiSelect || forceSingle){
                             if (is_selected)
                                 el.removeClass('selected');
                         }
@@ -1317,9 +1347,9 @@
                         $self._setParentValue(node, $self.getKey(prev));
                         $self._indent(node, 1);
                         $self._indent(children, 1);
-                        
+
                         $self.updateStyle(prev);
-                        
+
                         $self._trigger(node, 'indented', data);
                     }
                     
@@ -1368,10 +1398,11 @@
                         ordering ++;
                         d[this.opts.orderingField] = ordering;
                         data[this.opts.orderingField] = ordering;
-                    }
+                    }else
+                        ordering = data[this.opts.orderingField];
                     para.push(d);
                     
-                    //将parent下的同级结点的ordering按node的ordering向后移动
+                    //将当前结点下的同级结点的ordering按node的ordering向后移动
                     var nexts = this.getNextAll(parent);
                     for(i=0; i<nexts.length; i++){
                         d = {};
@@ -1609,6 +1640,7 @@
 
             /*
              * 处理checkbox被点击的事件，在tree中，如果同时按下了shift，则自动选中子结点
+             * 如果启用alt模式，则只有在按下alt时，才是执行多选，否则为单选
              */
             , _on_click_checkbox: function(){
                 var $body = this.$body;
@@ -1618,16 +1650,20 @@
                 var checked;
 
                 $body.on('click','tr > td .mmg-check',function(e){
+                    var forceSingle = that.opts.altSelectMode;
                     e.stopPropagation();
                     node = $($(this).parents('tr')[0]);
-                    if (e.shiftKey && that.opts.multiSelect)
+                    if (e.shiftKey && that.opts.multiSelect){
                         children = that.getChildrenAll(node, true);
-                    else
+                    }else{
                         children = [node];
+                        if (that.opts.altSelectMode && e.altKey)
+                            forceSingle = false;
+                    }
                     checked = this.checked;
                     for(var i=0; i<children.length; i++){
                         if(checked){
-                            that.select(children[i]);
+                            that.select(children[i], false, forceSingle);
                         }else{
                             that.deselect(children[i]);
                         }
@@ -1636,6 +1672,17 @@
                 });
             }
 
+            /*
+             * frozen 冻结事件
+             * flag = true 表示冻结事件， false 表示发出事件
+             * events 事件名称，是一个数组，可以忽略多个事件
+             */
+            , frozen: function(flag, events){
+                if (flag)
+                    this.frozen_events = events;
+                else
+                    this.frozen_events = [];
+            }
             
         } // end of methods
         

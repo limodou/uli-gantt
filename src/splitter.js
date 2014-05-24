@@ -166,12 +166,12 @@ $.fn.splitter = function(args){
 		},{
 			// user can override
 			v: {					// Vertical splitters:
-				keyLeft: 39, keyRight: 37, cursor: "e-resize",
+				keyLeft: 39, keyRight: 37, cursor: "col-resize",
 				barStateClass: "splitter-bar-vertical", 
 				barDockedClass: "splitter-bar-vertical-docked"
 			},
 			h: {					// Horizontal splitters:
-				keyTop: 40, keyBottom: 38,  cursor: "n-resize",
+				keyTop: 40, keyBottom: 38,  cursor: "row-resize",
 				barStateClass: "splitter-bar-horizontal",
 				barDockedClass: "splitter-bar-horizontal-docked"
 			}

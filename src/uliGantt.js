@@ -77,7 +77,21 @@
                 , dockKey: 'Z'   // Alt-Shift-Z in FF/IE
                 , accessKey: 'I'  // Alt-Shift-I in FF/IE
             });
-        
+
+        //添加纵向拖拽条
+        if(this.gantt_opts.dragView){
+            this.dragger = $('<div class="gantt-dragger"></div>');
+            this.element.after(this.dragger);
+            this.dragger.drag(function( ev, dd ){
+                $( this ).offset({top:dd.offsetY});
+	        }).drag('end', function(ev, dd){
+                var deltay = dd.offsetY - dd.originalY;
+		        that.element.height(that.element.height()+deltay);
+		        $( this ).offset({top:dd.offsetY});
+                that.grid.trigger('resize');
+	        });
+        }
+
         //init
         this.initTreeGrid();
 
@@ -137,7 +151,9 @@
             this.grid_opts.autoLoad = old_autoLoad;
             
             var events = ['added', 'updated', 'deleted', 'indented', 
-                'unindented', 'upped', 'collapsed', 'expanded', 'loadSuccess']
+                'unindented', 'upped', 'collapsed', 'expanded',
+                'expandedAll', 'collapsedAll',
+                'loadSuccess']
             $.each(events, $.proxy(function(index, v){
                 mmgrid.on(v, $.proxy(function(e, data){
                     var that = this;
@@ -146,8 +162,9 @@
                             if (that.gantt_opts.monitorFields.length==0 || that.gantt_opts.monitorFields.indexOf(k)>-1)
                                 that.redrawGantt();
                         })
-                    } else 
+                    } else {
                         that.redrawGantt();
+                    }
                 }, this));
             }, this));
             
@@ -1250,6 +1267,7 @@
             , tooltipHtml: null //回调函数，用来显示tooltip的文本，格式为 function (d){return html;}
                                 //   d为正在处理的数据项，如果不提供则使用缺省的显示
             , monitorFields: [] //如果数组为空，或者更新的字段名在数组中，则更新甘特图
+            , dragView: true    //是否可以拖动视图大小
         }
     }
     

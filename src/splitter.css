@@ -13,11 +13,15 @@
 .splitter-bar-error { background-color: #eaa }
 
 .splitter-bar-vertical {
-    background-color: #acaj;
+    background-color: #aca;
 	width: 6px;
     background-image: url(img/vgrabber.gif);
     background-repeat: no-repeat;
     background-position: center;
+}
+
+.splitter-bar-vertical:hover{
+    background-color: #add;
 }
 
 .splitter-bar-vertical-docked {
