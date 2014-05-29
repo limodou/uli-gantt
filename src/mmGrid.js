@@ -1059,36 +1059,50 @@
 
             //合并load的参数
             params = $.extend(params, args);
-            $.ajax({
+            this._ajaxRangeLoad(params, 1, append, true)
+        }
+
+        , _ajaxRangeLoad: function(params, page, append, notfinished){
+            var that = this;
+            var opts = this.opts;
+            var para = params;
+            notfinished = notfinished || true;
+            if (opts.pageLoad && page)
+                para = $.extend({}, params, {page:page, limit:opts.pageLimit});
+            $.ajaxQueue({
                 type: opts.method,
                 url: opts.url,
-                data: params,
+                data: para,
                 dataType: 'json',
                 cache: opts.cache
             }).done(function(data){
                 //获得root对象
                 var items = data;
+                var notfinished = false;
                 that.$page = data.page || 1;
                 that.$limit = data.limit || 0;
                 if($.isArray(data[opts.root])){
                     items = data[opts.root];
                 }
                 that.$runing = 1;
-                that._populate(items, append);
-                that.$runing = 0;
-                that._updateIndex(append);
-                if(!opts.remoteSort){
-                    that._refreshSortStatus();
-                }
+                if (!opts.pageLoad || items.length < opts.pageLimit){
+                    that._populate(items, append, false);
+                    that.$runing = 0;
+                    that._updateIndex(append);
+                    if(!opts.remoteSort){
+                        that._refreshSortStatus();
+                    }
 
-                that.$body.triggerHandler('loadSuccess', data);
+                    that.$body.triggerHandler('loadSuccess', data);
+                }else{
+                    that._populate(items, append);
+                    that._ajaxRangeLoad(params, page+1, true);
+                }
 
             }).fail(function(data){
                 that.$body.triggerHandler('loadError', data);
             });
-
         }
-
         , _loadNative: function(args){
             this._populate(args);
             this._refreshSortStatus();
@@ -1407,6 +1421,7 @@
         , removeRow: function(index){
             var that = this;
             var $tbody = that.$body.find('tbody');
+            var $head = this.$head;
 
             if($.isArray(index)){
                 for(var i=index.length-1; i >= 0; i--){
@@ -1430,6 +1445,9 @@
                 this._showNoData();
                 this._insertEmptyRow();
             }
+            //update check all
+            $head.find('th .checkAll').prop('checked','');
+
             //update index
             this._updateIndex();
         }
@@ -1468,6 +1486,8 @@
         , nameField: 'name'
         , items: []
         , autoLoad: true
+        , pageLoad: false   //ajax数据装入时是否分页，此参数为每片装入的记录数
+        , pageLimit: 200    //每页装入数据大小
         , remoteSort: false
         , sortName: ''
         , sortStatus: 'asc'

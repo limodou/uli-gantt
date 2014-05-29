@@ -262,9 +262,12 @@ $.fn.splitter = function(args){
 					path: opts.cookiePath || document.location.pathname});
 			});
 		}
-		if ( isNaN(initPos) )	// King Solomon's algorithm
-			initPos = Math.round((splitter[0][opts.pxSplit] - splitter._PBA - bar._DA)/2);
-
+		if ( isNaN(initPos) ){	// King Solomon's algorithm
+		    if (/\d+%/.test(initPos)){
+		        var p = parseInt(initPos.substr(0, initPos.length-1), 10);
+			    initPos = Math.round((splitter[0][opts.pxSplit] - splitter._PBA - bar._DA)*p/100);
+			}
+        }
 		// Resize event propagation and splitter sizing
 		if ( opts.anchorToWindow )
 			opts.resizeTo = window;

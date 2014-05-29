@@ -251,10 +251,11 @@
             }
             
             /*
-                查找当前元素的上一个兄弟结点
+                批量插入结点， notfinished表示是否处理完毕，此
+                函数将支持多次插入
             */
             
-            , _populate: function(items, append){
+            , _populate: function(items, append, notfinished){
                 var opts = this.opts;
                 var $body = this.$body;
                 this._initing = true;   //初始化标志
@@ -275,15 +276,17 @@
                         this._showNoData();
                     }
                 }
-                this._setStyle();
-                
-                if(opts.fullWidthRows && this._loadCount <= 1){
-                    this._fullWidthRows();
-                }
-                
+
                 this._hideLoading();
-                this._initing = false;
-                this._trigger(this.$body, 'inited');
+                if (!notfinished){
+                    this._setStyle();
+
+                    if(opts.fullWidthRows && this._loadCount <= 1){
+                        this._fullWidthRows();
+                    }
+                    this._initing = false;
+                    this._trigger(this.$body, 'inited');
+                }
             }
             
             //在某结点之后添加新结点
@@ -361,6 +364,7 @@
             */
             , remove: function(index, cascade){
                 var $tbody = this.$body.find('tbody');
+                var $head = this.$head;
                 var $self = this;
                 var nodes = [];
                 var node;
@@ -416,6 +420,9 @@
                             $self.updateStyle($(parents[j]));
                         }
                     }
+                    //update check all
+                    $head.find('th .checkAll').prop('checked','');
+
                     $self._updateIndex();
                     $self._trigger($self.$body, {type:'deleted'}, data);
                     $self._setStyle();
@@ -603,7 +610,13 @@
             }
             
             , collapse: function (node){
-                return this._collapse($(node), true);
+                var data = this.row(node);
+                e = this._trigger(node, 'collapse', data);
+                if(e.isDefaultPrevented()) return;
+                this.frozen(true, ['collapse', 'collapsed']);
+                this._collapse($(node), true);
+                this.frozen(false);
+                this._trigger(node, 'collapsed', data);
             }
             
             , collapseById: function(nodeId){
@@ -620,7 +633,7 @@
                     this.frozen(true, ['collapse', 'collapsed']);
                     for (var i=0; i<children.length; i++){
                         node = $(children[i]);
-                        this.collapse(node);
+                        this._collapse(node);
                     }
                     this.frozen(false);
                     this._trigger(this.$body, 'collapsedAll');
@@ -650,7 +663,7 @@
                 var that = this;
                 for (var i=0; i<parents.length; i++){
                     var parent = parents[i];
-                    that.expand($(parent), function(flag, parent){
+                    that._expand($(parent), function(flag, parent){
                         var children = that.getChildren(parent);
                         that._expandAll(children);
                     });
@@ -698,12 +711,23 @@
                 }
                 return node;
             }
-            
+
+            , expand: function(node, callback) {
+                var data = this.row(node);
+
+                e = this._trigger(node, 'expand', data);
+                if(e.isDefaultPrevented()) return;
+
+                this.frozen(true, ['expand', 'expanded']);
+                this._expand(node, callback);
+                this.frozen(false);
+                this._trigger(node, 'expanded', data);
+            }
             /*
                 展开一个树结点
                 callback 用于异步调用时的回调 (是否异步调用， 当前结点，是否展开)
             */
-            , expand: function (node, callback) {
+            , _expand: function (node, callback) {
                 if(!node || node.length == 0)
                     return ;
                     
@@ -724,13 +748,10 @@
                         icon.removeClass('tree-folder').addClass('tree-folder-open');
                     }
                 
-                    e = this._trigger(node, 'expand', data);
-                    if(e.isDefaultPrevented()) return;
-                    
                     if(children.length > 0){
                         children.each(function() {
                             if($(this).is(".parent.expanded")) {
-                                $self.expand($(this), callback);
+                                $self._expand($(this), callback);
                             }
                     
                             $(this).removeClass('ui-helper-hidden');
@@ -740,17 +761,17 @@
                         if (callback)
                             callback(false, node, true);
 
-                        this._trigger(node, 'expanded', data);
-                        
                     }
+
                     //如果没有子结点，则判断是否装过数据，data('loaded')
                     //如果装过数据，则忽略
                     else{
                         if(!node.data('loaded')){
                             this.doExpand('expand', node, data, callback);
                             node.data('loaded', true);
-                        }else
+                        }else{
                             this._trigger(node, 'expanded', data);
+                        }
                     }
                     
                 }else{

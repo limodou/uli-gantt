@@ -38,6 +38,7 @@
         this.element = element;
         this.grid_opts = options.grid;
         this.gantt_opts = options.gantt;
+        this.splitter_opts = options.splitter;
         
         //初始化今天日期
         this.today = this.gantt_opts.today;
@@ -63,8 +64,8 @@
         this.depends   = [];    //任务间的依赖，一个依赖是一条记录，格式为一个数组
                                 //   [from, to] from为前置任务
                                 //   上面的数据，将在 _process_data() 中进行处理
-        
-        element.splitter({
+
+        var splitter_opts = $.extend({}, {
                 type: "v"
                 , outline: true
                 , sizeLeft: '50%' //left size
@@ -76,7 +77,8 @@
                 , cookie: "docksplitter"
                 , dockKey: 'Z'   // Alt-Shift-Z in FF/IE
                 , accessKey: 'I'  // Alt-Shift-I in FF/IE
-            });
+            }, this.splitter_opts);
+        element.splitter(splitter_opts);
 
         //添加纵向拖拽条
         if(this.gantt_opts.dragView){
@@ -95,27 +97,8 @@
         //init
         this.initTreeGrid();
 
-        //load data
-        if (this.grid_opts.autoLoad){
-            if(!this.grid_opts.items || this.grid_opts.items.length==0) {
-                $.ajax({
-                    type:"GET",
-                    url:this.grid_opts.url,
-                    data:[],
-                    dataType:"json",
-                    success: $.proxy(function(data){
-                        var items = data;
-                        if($.isArray(data[this.grid_opts.root])){
-                            items = data[this.grid_opts.root];
-                        }
-                        this.loadItems(items);
-                    }, this)
-                });
-            } else {
-                this.loadItems(this.grid_opts.items);
-            }
-        }
-        
+        this.loadItems();
+
         return this;
     }
     
@@ -357,7 +340,7 @@
             var oldEndDate = this.endDate;
             var top = this.gantt.parent().scrollTop();
             var left = this.gantt.parent().scrollLeft();
-            
+
             scale = scale || this.scale;
             var data = this._process_data(this.grid.mmGrid("rows", true));
             //计划最大，最小日期

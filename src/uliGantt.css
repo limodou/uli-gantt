@@ -170,5 +170,6 @@ text-overflow: ellipsis;
 .gantt.gantt-scale-day .gantttree-panel .mmg-title{font-weight:normal;padding-top:25px;}
 .gantt.gantt-scale-week .gantttree-panel .mmg-title{font-weight:normal;padding-top:25px;}
 .gantt.gantt-scale-month .gantttree-panel .mmg-title{font-weight:normal;padding-top:20px;}
-.gantt-dragger {height:5px;margin:0;padding:0;cursor:row-resize;position:relative;background-color:#aca;z-index:2000;}
+
+.gantt-dragger {height:5px;margin:0;padding:0;cursor:row-resize;position:relative;background-color:#aca;z-index:1000;}
 .gantt-dragger:hover {background-color:#add;}
