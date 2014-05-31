@@ -39,7 +39,7 @@
             expandFilter: null, //自动展开数据预处理
             expandURL: null,    //自动展开子结点URL
             
-            altSelectMode: false    //alt 选择模式
+            multiSelectKey: ''    //多选快捷键模式，取值可以是 shift, alt, ctrl
         },
         
         _init: function(){
@@ -76,7 +76,7 @@
                 第一级为0
             */
             , _add : function(item, index, isChild, position){
-                var $tbody = this.$body.find('tbody');
+                var $tbody = this.$tbody;
                 var nodes = [];
                 var pos;
                 var event_type;
@@ -95,7 +95,6 @@
                         var d = this._add(item[i], index, isChild, pos);
                         nodes.push(d);
                     }
-                    
                     return nodes;
                 }
                 
@@ -168,7 +167,7 @@
                             }
                         }
                         
-                        this._updateIndex();
+//                        this._updateIndex();
                         this._trigger($tr, event_type, item);
                         
                     }
@@ -198,7 +197,7 @@
                     //设置父结点的loaded状态为true，表示已经做过expand的处理
                     parent.data('loaded', true);
                     
-                    this._updateIndex();
+//                    this._updateIndex();
                     this._trigger($tr, event_type, item);
                     
                     var key = parent.attr(this.opts.keyAttrName);
@@ -224,7 +223,7 @@
                 }else
                     this.updateStyle($tr, false);
                 
-                this._updateIndex();
+//                this._updateIndex();
                 return $tr
             }
             
@@ -258,18 +257,22 @@
             , _populate: function(items, append, notfinished){
                 var opts = this.opts;
                 var $body = this.$body;
+                var $tbody = this.$tbody;
                 this._initing = true;   //初始化标志
                 var replace = false;
-                var has_body = $body.find('tbody').size() > 0;
+                var has_body = $tbody.size() > 0;
                 
                 if (!has_body || (!append && has_body))
                     replace = true;
                 
                 this._hideMessage();
                 if(items && items.length !== 0 && opts.cols){
-                    if (replace)
-                        $body.empty().html('<tbody></tbody>');
-                    this.add(items, undefined, 'last')
+                    if (replace){
+                        this.$tbody = $tbody = $body.empty().html('<tbody></tbody>');
+                    }
+                    $tbody.hide();
+                    this.add(items, undefined, 'last');
+                    $tbody.show();
                 }else{
                     if (replace){
                         this._insertEmptyRow();
@@ -293,6 +296,8 @@
             , add: function(item, index, position){
                 this._add(item, index, false, position);
                 this._setStyle();
+                this._updateIndex();
+
             }
             
             //在某结点之前添加新结点
@@ -1498,9 +1503,11 @@
                 var padding = this.opts.indent*(this._level(node)+1);
                 var data = this.row(node);
                 var children = this.getChildren(node);
+                var children_len = children.length;
                 var parent = this.getParent(node);
                 //记录旧的_isParent值，用来比较新值，以便可以发出updated事件
                 var old_is_parent = data._isParent;
+                var add_cls = '', rm_cls = '';
                 
                 if (expandable || expandable === undefined)
                     expand = 'expanded'
@@ -1508,28 +1515,30 @@
                     expand = 'collapsed';
                 
                 if(!node.hasClass('initialized') || force || 
-                    (node.hasClass('parent') && children.length==0) || 
-                    (!node.hasClass('parent') && children.length>0) ||
+                    (node.hasClass('parent') && children_len==0) ||
+                    (!node.hasClass('parent') && children_len>0) ||
                     (node.hasClass('expanded') && !expand) ||
                     (node.hasClass('collapsed') && expand)){
-                    
+
                     if(!node.hasClass('initialized'))
-                        node.addClass('initialized');
-                    
+                        add_cls += 'initialized';
+
                     if(expandable && (!node.hasClass('expanded'))){
-                        node.removeClass('collapsed').addClass('expanded');
+                        rm_cls += 'collapsed';
+                        add_cls += 'expanded';
                     }
-                    if((expandable === false) && (!node.hasClass('collapsed')) && (children.length>0)){
-                        node.removeClass('expanded').addClass('collapsed');
+                    if((expandable === false) && (!node.hasClass('collapsed')) && (children_len>0)){
+                        rm_cls += 'expanded';
+                        add_cls += 'collapsed';
                     }
                     
                     //如果当前结点的数据中有_isParent或子结点数>0，则添加parent信息
-                    if((data._isParent && !node.data('loaded') && children.length==0) || children.length > 0) {
+                    if((data._isParent && !node.data('loaded') && children_len==0) || children_len > 0) {
                         data._isParent = true;
-                        node.addClass("parent");
+                        add_cls += 'parent';
                     }else{
                         data._isParent = false;
-                        node.removeClass('parent');
+                        rm_cls += 'parent';
                         cell.find('a.expander').remove();
                     }
                     if(this.opts.showIcon) {
@@ -1561,8 +1570,7 @@
                         if(this.opts.expandable) {
                             if (a.length==0){
                                 a = $('<a href="#" title="' + this.opts.stringExpand + '" class="expander"></a>');
-                                cell.children('div').prepend(a);
-                                a.click(function(e) { 
+                                a.click(function(e) {
                                     e.preventDefault();
                                     $self.toggleExpand(node); 
                                     return false;
@@ -1577,17 +1585,20 @@
                                         }
                                     });
                                 }
+                                cell.children('div').prepend(a);
+
                             }
                         }
                         
                         if(!(node.hasClass("expanded") || node.hasClass("collapsed"))) {
-                            node.addClass(expand);
+                            add_cls += expand;
                         }
                         
                     }
 
+                    node.removeClass(rm_cls).addClass(add_cls);
                     a.css('left', padding-16);
-                    
+
                     if (old_is_parent !== data._isParent)
                         $self._trigger(node, 'updated', data);
                     
@@ -1671,15 +1682,23 @@
                 var checked;
 
                 $body.on('click','tr > td .mmg-check',function(e){
-                    var forceSingle = that.opts.altSelectMode;
+                    var forceSingle;
                     e.stopPropagation();
                     node = $($(this).parents('tr')[0]);
-                    if (e.shiftKey && that.opts.multiSelect){
+                    if (e.altKey && that.opts.multiSelect){
                         children = that.getChildrenAll(node, true);
+                        forceSingle = false;
                     }else{
                         children = [node];
-                        if (that.opts.altSelectMode && e.altKey)
-                            forceSingle = false;
+                        forceSingle = true;
+                        if (that.opts.multiSelectKey){
+                            if (that.opts.multiSelectKey == 'alt' && e.altKey)
+                                forceSingle = false;
+                            else if (that.opts.multiSelectKey == 'shift' && e.shiftKey)
+                                forceSingle = false;
+                            else if (that.opts.multiSelectKey == 'ctrl' && e.ctrlKey)
+                                forceSingle = false;
+                        }
                     }
                     checked = this.checked;
                     for(var i=0; i<children.length; i++){

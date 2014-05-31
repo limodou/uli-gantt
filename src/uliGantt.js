@@ -65,6 +65,8 @@
                                 //   [from, to] from为前置任务
                                 //   上面的数据，将在 _process_data() 中进行处理
 
+        this.gantt_visible = true;  //表示甘特图是否可见,它将根据splitter的状态发生改变
+
         var splitter_opts = $.extend({}, {
                 type: "v"
                 , outline: true
@@ -93,6 +95,11 @@
                 that.grid.trigger('resize');
 	        });
         }
+
+        //增加对dock, undock事件的处理
+        element.on('resize', function(e){
+            that.gantt_visible = that.gantt_panel.width() > 0;
+        });
 
         //init
         this.initTreeGrid();
@@ -126,7 +133,7 @@
             
             this.grid_opts = $.extend(true, {}, $.fn.mmGrid.defaults, this.grid_opts, grid_settings);
             this.grid_opts.expandURL = this.grid_opts.expandURL || this.grid_opts.url;
-            
+
             //disable autoload in mmgrid
             var old_autoLoad = this.grid_opts.autoLoad;
             this.grid_opts.autoLoad = false;
@@ -143,10 +150,12 @@
                     if (e.type == 'updated'){
                         $.each(data, function(k, v){
                             if (that.gantt_opts.monitorFields.length==0 || that.gantt_opts.monitorFields.indexOf(k)>-1)
-                                that.redrawGantt();
+                                if (that.gantt_opts.ganttDrawAuto && that.gantt_visible)
+                                    that.redrawGantt();
                         })
                     } else {
-                        that.redrawGantt();
+                        if (that.gantt_opts.ganttDrawAuto && that.gantt_visible)
+                            that.redrawGantt();
                     }
                 }, this));
             }, this));
@@ -722,7 +731,9 @@
                     d = data[i].beginTime;
                 else
                     d = data[i].endTime || null;
-                maxDate = maxDate < d ? d : maxDate;
+                if (d !== null) {
+                    maxDate = maxDate < d ? d : maxDate;
+                }
             }
             if(this.gantt_opts.todayLineFlag) {            
                 maxDate = maxDate < this.today ? new Date(this.today.getTime()) : new Date(maxDate.getTime());
@@ -757,6 +768,7 @@
                     maxDate.setDate(maxDate.getDate() + 3);
                     break;
             }
+
             return maxDate;
         }
         
@@ -770,14 +782,17 @@
                     d = data[i].beginTime;
                 else
                     d = data[i].endTime || null;
-                minDate = minDate > d || minDate === null ? d : minDate;
+                if (d !== null) {
+                    minDate = minDate > d || minDate === null ? d : minDate;    
+                }
+                
             }
             if(this.gantt_opts.todayLineFlag) {
                 minDate = minDate > this.today || minDate === null ? new Date(this.today.getTime()) : new Date(minDate.getTime());    
             } else {
                 minDate = new Date(minDate.getTime())
             }
-            
+
             switch (scale) {
                 case "day":
                     if(minDate.getDate() < 4) {
@@ -1190,6 +1205,10 @@
             var today = new Date();
             return new Date(today.getFullYear(), today.getMonth(), today.getDate());
         }
+
+        , getGanttOption: function(){
+            return this.gantt_opts;
+        }
         
     }
     
@@ -1251,6 +1270,7 @@
                                 //   d为正在处理的数据项，如果不提供则使用缺省的显示
             , monitorFields: [] //如果数组为空，或者更新的字段名在数组中，则更新甘特图
             , dragView: true    //是否可以拖动视图大小
+            , ganttDrawAuto: true
         }
     }
     

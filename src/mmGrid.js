@@ -102,6 +102,7 @@
             this.$bodyWrapper = $mmGrid.find('.mmg-bodyWrapper');
             this.$count = 0;        //记录所有数据,一行一条
             this.$body = $el.removeAttr("style").addClass('mmg-body');
+            this.$tbody = this.$body.find('tbody');
             this.$page = 1;
             this.$limit = 0;
             this.$runing = 0;
@@ -1096,7 +1097,9 @@
                     that.$body.triggerHandler('loadSuccess', data);
                 }else{
                     that._populate(items, append);
-                    that._ajaxRangeLoad(params, page+1, true);
+                    setTimeout(function(){
+                        that._ajaxRangeLoad(para, page+1, true);
+                    }, 10);
                 }
 
             }).fail(function(data){
