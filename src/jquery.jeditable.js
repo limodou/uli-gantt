@@ -581,25 +581,27 @@
                 },
                 content : function(data, settings, original) {
                     /* If it is string assume it is json. */
+                    /* a json date should be an array */
                     if (String == data.constructor) {      
                         eval ('var json = ' + data);
-                    } else if($.isArray(data)){
+                    } /*else if($.isArray(data)){
                         var json = {};
                         for(var i=0; i<data.length; i++){
                             json[data[i][0]] = data[i][1];
                         }
-                    } else {
+                    } */
+                    else {
                     /* Otherwise assume it is a hash already. */
                         var json = data;
                     }
-                    for (var key in json) {
-                        if (!json.hasOwnProperty(key)) {
-                            continue;
-                        }
+                    var key, value;
+                    for (var i=0, _len=json.length; i<_len; i++) {
+                        key = json[i][0];
+                        value = json[i][1];
                         if ('selected' == key) {
                             continue;
                         } 
-                        var option = $('<option />').val(key).append(json[key]);
+                        var option = $('<option />').val(key).append(value);
                         $('select', this).append(option);    
                     }                    
                     /* Loop option again to set selected. IE needed this... */ 
