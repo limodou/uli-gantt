@@ -832,8 +832,7 @@
             $ths.eq(0).addClass('first');
             $ths.eq(-1).addClass('last');
             //body
-            $body.find('tr,td').removeClass('even')
-                .removeClass('colSelected').removeClass('colSelectedEven');
+            $body.find('tr,td').removeClass('even colSelected colSelectedEven');
 
             $body.find('tr:odd').addClass('even');
 
@@ -1199,10 +1198,14 @@
                 if (append)
                     start = 0;
                 if ($body.find('.emptyRow').size() == 0){
-                    $body.find('tr').each(function(index, el){
-                        var col = $(el).find('td:first');
-                        col.html(index_col.renderer(null, null, start+index));
-                    });
+                    var trs = $body.find('tr').get();
+                    var tr;
+                    var col;
+                    for(var i=0, _len=trs.length; i<_len; i++){
+                        tr = trs[i];
+                        col = $(tr).find('td').eq(0);
+                        col.html(index_col.renderer(null, null, start+i));
+                    }
                 }
             }
         }

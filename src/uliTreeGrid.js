@@ -345,7 +345,7 @@
             */
             , _get_item: function(index){
                 var item;
-                var $tbody = this.$body.find('tbody');
+                var $tbody = this.$tbody;
                 
                 if($.isNumeric(index)){
                     item = $tbody.find('tr').eq(index)
@@ -368,7 +368,7 @@
                 
             */
             , remove: function(index, cascade){
-                var $tbody = this.$body.find('tbody');
+                var $tbody = this.$tbody;
                 var $head = this.$head;
                 var $self = this;
                 var nodes = [];
@@ -954,6 +954,16 @@
             , getKey: function(node) {
                 return $(node).attr(this.opts.keyAttrName);
             }
+
+            , hasChildren: function(node){
+                if(node && node.length>0){
+                    var next = $(node).next();
+                    return next.attr(this.opts.parentAttrName) == this.getKey(node);
+                }
+                else{
+                    return ;
+                }
+            }
             /*
                 获得某个结点的子结点,如果node为undefined则返回所有顶层
                 的结点
@@ -1222,7 +1232,7 @@
             */
             , _update: function(item, index, exact){
                 var opts = this.opts;
-                var $tbody = this.$body.find('tbody');
+                var $tbody = this.$tbody;
                 if(!$.isPlainObject(item)){
                     return ;
                 }
@@ -1496,112 +1506,134 @@
             
             , updateStyle: function(node, expandable, force){
                 var old_expand = expandable;
+                var opts = this.opts;
                 var $self = this;
-                var cell = $(node.children("td")[this._getColumnIndex(this.opts.treeColumn)]);
-                var target = cell.find(this.opts.fieldTarget);
+                //var cell = $(node.children("td")[this._getColumnIndex(opts.treeColumn)]);
+                var cell = node.find("td").eq(this._getColumnIndex(opts.treeColumn));
+                var target = cell.find(opts.fieldTarget);
                 var a = cell.find('a.expander');
-                var padding = this.opts.indent*(this._level(node)+1);
+                var padding = opts.indent*(this._level(node)+1);
                 var data = this.row(node);
-                var children = this.getChildren(node);
-                var children_len = children.length;
+                var has_children = this.hasChildren(node);
                 var parent = this.getParent(node);
                 //记录旧的_isParent值，用来比较新值，以便可以发出updated事件
                 var old_is_parent = data._isParent;
                 var add_cls = '', rm_cls = '';
-                
+                var has_init = node.hasClass('initialized');
+                var has_parent = node.hasClass('parent');
+                var has_expanded = node.hasClass('expanded');
+                var has_collapsed = node.hasClass('collapsed');
+                var new_parent;
+
                 if (expandable || expandable === undefined)
-                    expand = 'expanded'
+                    expand = 'expanded';
                 else
                     expand = 'collapsed';
-                
-                if(!node.hasClass('initialized') || force || 
-                    (node.hasClass('parent') && children_len==0) ||
-                    (!node.hasClass('parent') && children_len>0) ||
-                    (node.hasClass('expanded') && !expand) ||
-                    (node.hasClass('collapsed') && expand)){
 
-                    if(!node.hasClass('initialized'))
-                        add_cls += 'initialized';
+                if(!has_init || force ||
+                    (has_parent && !has_children) ||
+                    (!has_parent && has_children) ||
+                    (has_expanded && !expand) ||
+                    (has_collapsed && expand)){
 
-                    if(expandable && (!node.hasClass('expanded'))){
-                        rm_cls += 'collapsed';
-                        add_cls += 'expanded';
-                    }
-                    if((expandable === false) && (!node.hasClass('collapsed')) && (children_len>0)){
-                        rm_cls += 'expanded';
-                        add_cls += 'collapsed';
-                    }
-                    
-                    //如果当前结点的数据中有_isParent或子结点数>0，则添加parent信息
-                    if((data._isParent && !node.data('loaded') && children_len==0) || children_len > 0) {
-                        data._isParent = true;
-                        add_cls += 'parent';
-                    }else{
-                        data._isParent = false;
-                        rm_cls += 'parent';
-                        cell.find('a.expander').remove();
-                    }
-                    if(this.opts.showIcon) {
-                        var icon = cell.find('span.tree-icon');
-                        if(icon.length==0) {
-                            icon = $('<span class="tree-icon"></span>');
-                            cell.children('div').prepend(icon);
+
+                    function _process_class(){
+
+                        if(!has_init)
+                            add_cls += ' initialized';
+
+                        if(expandable && (!has_expanded)){
+                            rm_cls += ' collapsed';
+                            add_cls += ' expanded';
                         }
-                        target.css('paddingLeft', padding + this.opts.iconIndent+6);
-                        icon.css('left', padding-16 + this.opts.iconIndent);
-                        icon.removeClass('tree-file').removeClass('tree-folder').removeClass('tree-folder-open');
-                        if (node.hasClass('parent')) {
-                            if(node.hasClass('expanded')){
-                                icon.addClass('tree-folder-open');
+                        if((expandable === false) && (!has_collapsed) && has_children){
+                            rm_cls += ' expanded';
+                            add_cls += ' collapsed';
+                        }
+
+                        //如果当前结点的数据中有_isParent或子结点数>0，则添加parent信息
+                        if((data._isParent && !node.data('loaded') && !has_children) || has_children) {
+                            data._isParent = true;
+                            add_cls += ' parent';
+
+                            new_parent = true;
+                        }else{
+                            data._isParent = false;
+                            rm_cls += ' parent';
+                            a.remove();
+
+                            new_parent = false;
+                        }
+                    }
+
+                    function _process_icon(){
+                        if(opts.showIcon) {
+                            var icon = cell.find('span.tree-icon');
+                            if(icon.length==0) {
+                                icon = $('<span class="tree-icon"></span>');
+                                cell.children('div').prepend(icon);
+                            }
+                            target.css('paddingLeft', padding + opts.iconIndent+6);
+                            icon.css('left', padding-16 + opts.iconIndent);
+                            icon.removeClass('tree-file').removeClass('tree-folder').removeClass('tree-folder-open');
+                            if (new_parent) {
+                                if(has_expanded){
+                                    icon.addClass('tree-folder-open');
+                                } else {
+                                    icon.addClass('tree-folder');
+                                }
                             } else {
-                                icon.addClass('tree-folder');
+                                icon.addClass('tree-file')
+                            }
+                            if(data.iconCls) {
+                                icon.addClass(data.iconCls);
                             }
                         } else {
-                            icon.addClass('tree-file')
+                            target.css('paddingLeft', padding);
                         }
-                        if(data.iconCls) {
-                            icon.addClass(data.iconCls);
-                        }
-                    } else {
-                        target.css('paddingLeft', padding);
                     }
-                    
-                    if(node.hasClass('parent')){
-                        if(this.opts.expandable) {
-                            if (a.length==0){
-                                a = $('<a href="#" title="' + this.opts.stringExpand + '" class="expander"></a>');
-                                a.click(function(e) {
-                                    e.preventDefault();
-                                    $self.toggleExpand(node); 
-                                    return false;
-                                });
-                                if(this.opts.clickableNodeNames) {
-                                    a.css('cursor', "pointer");
-                                    $(cell).click(function(e) {
+
+                    function _process_parent(){
+                        if(new_parent){
+                            if(opts.expandable) {
+                                if (a.length==0){
+                                    a = $('<a href="#" title="' + opts.stringExpand + '" class="expander"></a>');
+                                    a.click(function(e) {
                                         e.preventDefault();
-                                        // Don't double-toggle if the click is on the existing expander icon
-                                        if (e.target.className != 'expander') {
-                                            $self.toggleExpand(node);
-                                        }
+                                        $self.toggleExpand(node);
+                                        return false;
                                     });
-                                }
-                                cell.children('div').prepend(a);
+                                    if(opts.clickableNodeNames) {
+                                        a.css('cursor', "pointer");
+                                        $(cell).click(function(e) {
+                                            e.preventDefault();
+                                            // Don't double-toggle if the click is on the existing expander icon
+                                            if (e.target.className != 'expander') {
+                                                $self.toggleExpand(node);
+                                            }
+                                        });
+                                    }
+                                    cell.children('div').prepend(a);
 
+                                }
                             }
+
+                            if(!(has_expanded || has_collapsed)) {
+                                add_cls += ' ' + expand;
+                            }
+
                         }
-                        
-                        if(!(node.hasClass("expanded") || node.hasClass("collapsed"))) {
-                            add_cls += expand;
-                        }
-                        
+
+                        node.removeClass(rm_cls).addClass(add_cls);
+                        a.css('left', padding-16);
                     }
 
-                    node.removeClass(rm_cls).addClass(add_cls);
-                    a.css('left', padding-16);
-
+                    _process_class();
+                    _process_icon();
+                    _process_parent();
                     if (old_is_parent !== data._isParent)
                         $self._trigger(node, 'updated', data);
-                    
+
                 }
             }
             /*
