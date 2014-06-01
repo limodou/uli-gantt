@@ -44,6 +44,8 @@
         
         _init: function(){
             var $self = this;
+            //初始化树展示结点
+            this.$treeColumnIndex = this._getColumnIndex(this.opts.treeColumn)
         }
         
         , methods: {
@@ -167,7 +169,6 @@
                             }
                         }
                         
-//                        this._updateIndex();
                         this._trigger($tr, event_type, item);
                         
                     }
@@ -180,24 +181,27 @@
                     
                     //如果position为last，则插入到子结点的最后
                     if(position == 'last'){
+                        /*
                         var children = this.getChildren(parent);
                         if(children.length > 0){
-                            next = this.getNext($(children[children.length-1]));
+                        */
+                        if(this.hasChildren(parent)){
+                            //next = this.getNext($(children[children.length-1]));
+                            next = this.getNext(parent);
                             if (next){
                                 next.before($tr);
                             }
                             else
                                 $tbody.append($tr);
                         }
-                        else parent.after($($tr));
+                        else parent.after($tr);
                     }
                     else
-                        parent.after($($tr));
+                        parent.after($tr);
                     
                     //设置父结点的loaded状态为true，表示已经做过expand的处理
                     parent.data('loaded', true);
                     
-//                    this._updateIndex();
                     this._trigger($tr, event_type, item);
                     
                     var key = parent.attr(this.opts.keyAttrName);
@@ -223,7 +227,6 @@
                 }else
                     this.updateStyle($tr, false);
                 
-//                this._updateIndex();
                 return $tr
             }
             
@@ -304,12 +307,14 @@
             , insert: function(item, index){
                 this._add(item, index, false, 'before');
                 this._setStyle();
+                this._updateIndex();
             }
             
             
             , addChild: function(item, index, position){
                 this._add(item, index, true, position);
                 this._setStyle();
+                this._updateIndex();
             }
             
             /*
@@ -321,7 +326,8 @@
                 var d;
                 var i=0;
                 $.each($body.find('tr'), function(){
-                    if ((visible && $(this).is(":visible") && !$(this).hasClass('emptyRow')) || !visible){
+                    var el = $(this);
+                    if ((visible && el.is(":visible") && !el.hasClass('emptyRow')) || !visible){
                         d = $.data(this,'item');
                         items.push(d);
                         i++;
@@ -390,10 +396,12 @@
                 }else{
                     if ($.isArray(index)){
                         indexes = index;
-                    }else
+                    }else if (index instanceof $)
+                        indexes = index;
+                    else
                         indexes = [index];
 
-                    for (var i=0; i<indexes.length; i++){
+                    for (var i=0, _len=indexes.length; i<_len; i++){
                         node = this._get_item(indexes[i])
                         node_items.push(node);
                         nodes.push(node);
@@ -404,13 +412,15 @@
                     }
                 }
                 
-                for(var i=0; i<nodes.length; i++){
+                for(var i=0, _len=nodes.length; i<_len; i++){
                     para.push(this.getKey(nodes[i]));
                 }
                 
                 function f(d, is_direct){
+                    $tbody.hide();
+
                     if (!is_direct){
-                        for(var i=0; i<d.length; i++){
+                        for(var i=0, _len=d.length; i<_len; i++){
                             var n = $self.findItem(d[i]);
                             $self._remove(n);
                         }
@@ -419,9 +429,9 @@
                     }
                     
                     //更新所有父结点的样式
-                    for(var i=0; i<node_items.length; i++){
+                    for(var i=0, _len=node_items.length; i<_len; i++){
                         var parents = $self.getParents(node_items[i]);
-                        for(var j=0; j<parents.length; j++){
+                        for(var j=0, j_len=parents.length; j<j_len; j++){
                             $self.updateStyle($(parents[j]));
                         }
                     }
@@ -431,6 +441,8 @@
                     $self._updateIndex();
                     $self._trigger($self.$body, {type:'deleted'}, data);
                     $self._setStyle();
+
+                    $tbody.show();
                 }
                 
                 this._bind_handler('delete', para, f);
@@ -940,7 +952,7 @@
             */
             , _getColumnIndex: function (index) {
                 if (!$.isNumeric(index)){
-                    for(var i=0; i<this.$columns.length; i++){
+                    for(var i=0, _len=this.$columns.length; i<_len; i++){
                         if(this._getColName(this.$columns[i]) == index) return i;
                     }
                     return ;
@@ -1508,16 +1520,9 @@
                 var old_expand = expandable;
                 var opts = this.opts;
                 var $self = this;
-                //var cell = $(node.children("td")[this._getColumnIndex(opts.treeColumn)]);
-                var cell = node.find("td").eq(this._getColumnIndex(opts.treeColumn));
-                var target = cell.find(opts.fieldTarget);
-                var a = cell.find('a.expander');
-                var padding = opts.indent*(this._level(node)+1);
-                var data = this.row(node);
                 var has_children = this.hasChildren(node);
-                var parent = this.getParent(node);
+//                var parent = this.getParent(node);
                 //记录旧的_isParent值，用来比较新值，以便可以发出updated事件
-                var old_is_parent = data._isParent;
                 var add_cls = '', rm_cls = '';
                 var has_init = node.hasClass('initialized');
                 var has_parent = node.hasClass('parent');
@@ -1533,8 +1538,15 @@
                 if(!has_init || force ||
                     (has_parent && !has_children) ||
                     (!has_parent && has_children) ||
-                    (has_expanded && !expand) ||
-                    (has_collapsed && expand)){
+                    (has_expanded && expand=='collapsed') ||
+                    (has_collapsed && expand=='expanded')){
+
+                    var cell = node.find("td").eq(this.$treeColumnIndex);
+                    var target = cell.find(opts.fieldTarget);
+                    var a = cell.find('a.expander');
+                    var padding = opts.indent*(this._level(node)+1);
+                    var data = this.row(node);
+                    var old_is_parent = data._isParent;
 
 
                     function _process_class(){
@@ -1542,11 +1554,11 @@
                         if(!has_init)
                             add_cls += ' initialized';
 
-                        if(expandable && (!has_expanded)){
+                        if(expandable && !has_expanded){
                             rm_cls += ' collapsed';
                             add_cls += ' expanded';
                         }
-                        if((expandable === false) && (!has_collapsed) && has_children){
+                        if((expandable === false) && !has_collapsed && has_children){
                             rm_cls += ' expanded';
                             add_cls += ' collapsed';
                         }
@@ -1714,16 +1726,17 @@
                 var checked;
 
                 $body.on('click','tr > td .mmg-check',function(e){
-                    var forceSingle;
+                    var forceSingle=true;
                     e.stopPropagation();
                     node = $($(this).parents('tr')[0]);
                     if (e.altKey && that.opts.multiSelect){
                         children = that.getChildrenAll(node, true);
                         forceSingle = false;
-                    }else{
+                    }else if (that.opts.multiSelect){
                         children = [node];
-                        forceSingle = true;
+                        forceSingle = false;
                         if (that.opts.multiSelectKey){
+                            forceSingle = true;
                             if (that.opts.multiSelectKey == 'alt' && e.altKey)
                                 forceSingle = false;
                             else if (that.opts.multiSelectKey == 'shift' && e.shiftKey)
@@ -1733,7 +1746,7 @@
                         }
                     }
                     checked = this.checked;
-                    for(var i=0; i<children.length; i++){
+                    for(var i=0, _len=children.length; i<_len; i++){
                         if(checked){
                             that.select(children[i], false, forceSingle);
                         }else{

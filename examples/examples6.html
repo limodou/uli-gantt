@@ -153,6 +153,7 @@
                     , fitColWidth: true
 //                    , paginator: $('#paginator').mmPaginator()
                     , nowrap: true
+                    , multiSelect: true
                     , fullWidthRows: false
                     , indexCol: true
 //                    , showIcon: true
@@ -239,8 +240,8 @@
                     grid.mmGrid('addChild', make_item(), index, true);
                 });
                 $('#btnRemoveSelected').on('click', function(){
-                    var index = grid.mmGrid('selectedItem');
-                    grid.mmGrid('remove', index, true);
+                    var index = grid.mmGrid('selectedItems');
+                    grid.mmGrid('remove', index);
                 });
                 $('#btnIndent').on('click', function(){
                     var index = grid.mmGrid('selectedItem');
