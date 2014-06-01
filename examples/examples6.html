@@ -128,7 +128,7 @@
                 }
                 
                 var cols = [
-                    {title:'ID', name:'id', width: 30, align: 'center',lockWidth:true},
+                    {title:'FIELD ID', name:'id', width: 30, align: 'center',lockWidth:true},
                     {title:'名称', name:'name' ,width:150, lockDisplay: true, editor:{type:'text'} },
                     {title:'开始时间', name:'begin_date' ,width:80, editor:{type:'datepicker'} },
                     {title:'结束时间', name:'end_date' ,width:80, editor:{type:'datepicker'} },
@@ -306,6 +306,7 @@
                     return data;
                 }
 
+                grid.mmGrid('set_notation', 1, 'begin_date', 'warning', 'test');
             });
         </script>
     </body>

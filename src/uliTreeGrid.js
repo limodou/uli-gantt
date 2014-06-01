@@ -15,7 +15,8 @@
             indent: 16,     //每级缩近的宽度值
 //            initialState: "collapsed",
             treeColumn: 0,  //可以是字段名
-            fieldTarget: 'div.mmg-cellWrapper div', //每个单元格的第一个子元素标签名，在生成每个单元格时要与此一致
+            //fieldTarget: 'div.mmg-cellWrapper div', //每个单元格的第一个子元素标签名，在生成每个单元格时要与此一致
+            fieldTarget: 'div.mmg-cellText, div.mmg-cellWrapper', //每个单元格的第一个子元素标签名，在生成每个单元格时要与此一致
             persist: false, //是否将折叠状态保存在cookie中
             persistCookiePrefix: 'treeTable_',
             persistCookieOptions: {},
@@ -492,7 +493,10 @@
                 var cls;
                 var expandCols = this.$fullColumns;
                 var leafCols = this._leafCols();
-                
+                var col;
+                var index;
+                var hasDiv;
+
                 if($.isPlainObject(item)){
                     var trHtml = [];
                     if (item[opts.idField])
@@ -507,31 +511,36 @@
                     }
                     trHtml.push('>');
                     for(var colIndex=0; colIndex < leafCols.length; colIndex++){
-                        var col = leafCols[colIndex];
+                        hasDiv = false;
+                        col = leafCols[colIndex];
                         trHtml.push('<td class="');
-                        var index =  $.inArray(col, expandCols);
+                        index =  $.inArray(col, expandCols);
                         trHtml.push(this._genColClass(index));
                         if(opts.nowrap){
                             trHtml.push(' nowrap');
                         }
-                        trHtml.push('"><div class="mmg-cellWrapper"><div class="');
-                        if(opts.nowrap){
-                            trHtml.push('nowrap');
-                        }
-                        trHtml.push('"')
+                        trHtml.push('">')
+
                         //如果是tree结点列，则每行预留一定的空白
                         if(colIndex == this._getColumnIndex(opts.treeColumn)){
+                            hasDiv = true;
+                            trHtml.push('<div class="mmg-cellText ');
+                            if(opts.nowrap){
+                                trHtml.push('nowrap');
+                            }
+                            trHtml.push('"');
                             var rowIndent = opts.showIcon ? opts.indent + opts.iconIndent+6 : opts.indent
                             trHtml.push(' style="padding-left:' + rowIndent + 'px"');
+                            trHtml.push('>');
                         }
-                        trHtml.push('>');
                         if(col.renderer){
                             trHtml.push(col.renderer(item[this._getColName(col)],item));
                         }else{
                             trHtml.push(item[this._getColName(col)]);
                         }
-                        trHtml.push('</div>');
-                        trHtml.push('</span></td>');
+                        if (hasDiv)
+                            trHtml.push('</div>');
+                        trHtml.push('</td>');
                     };
                     trHtml.push('</tr>');
                     return trHtml.join('');
@@ -926,15 +935,19 @@
             , _setParentValue: function (node, value){
                 var parent;
                 var data = this.row(node);
+                var p_data;
                 
                 if (value){
                     $(node).attr(this.opts.parentAttrName, value);
                     data[this.opts.parentField] = value;
                     parent = this.findItem(value);
                     //是否装载要根据有没有执行expand方法来处理
-                    //if (parent){
-                    //    parent.data('loaded', true);
-                    //}
+                    //但如果isParent为false, 则自动视为loaded
+                    if (parent){
+                        p_data = this.row(parent);
+                        if (!p_data.isParent)
+                            parent.data('loaded', true);
+                    }
                 }
                 else{
                     $(node).removeAttr(this.opts.parentAttrName);
@@ -1255,20 +1268,26 @@
                 var text;
                 var cell;
                 var data = this.row($tr);
+                var col;
+                var cell_text;
                 $.extend(data, item);
                 
                 if (exact) data = item;
                 $.each(data, function(key, value){
-                    for(var colIndex=0; colIndex < that.$columns.length; colIndex++){
-                        var col = that.$columns[colIndex];
+                    for(var colIndex=0, _len=that.$columns.length; colIndex < _len; colIndex++){
+                        col = that.$columns[colIndex];
                         if(that._getColName(col) == key){
                             if(col.renderer){
                                 text = col.renderer(data[that._getColName(col)], data);
                             }else{
                                 text = value;
                             }
-                            cell = $tr.find('td:eq('+colIndex+')').find(opts.fieldTarget);
-                            cell.html(text);
+                            cell = $tr.find('td').eq(colIndex);
+                            cell_text = cell.find(opts.fieldTarget);
+                            if (cell_text.length>0)
+                                cell_text.html(text);
+                            else
+                                cell.html(text);
                             break;
                         }
                     }
@@ -1542,7 +1561,7 @@
                     (has_collapsed && expand=='expanded')){
 
                     var cell = node.find("td").eq(this.$treeColumnIndex);
-                    var target = cell.find(opts.fieldTarget);
+                    var target = cell.find('div.mmg-cellText');
                     var a = cell.find('a.expander');
                     var padding = opts.indent*(this._level(node)+1);
                     var data = this.row(node);
@@ -1659,18 +1678,12 @@
                 cell.attr('title', message);
                 cell.find('.mmg-notation').remove();
                 var item = $('<span class="mmg-notation '+cls+'" title="'+message+'"></span>');
-                cell.find('div.mmg-cellWrapper').append(item);
-            }
-            
-            /*
-                在指定的行对应的列显示不同的背景
-            */
-            , set_cell_notation: function(index, column, cls, message){
-                var $tr = this._get_item(index);
-                var cell = $($tr.children("td")[this._getColumnIndex(column)]);
-                cell.removeClass('error').removeClass('warning').removeClass('success').remove('info');
-                cell.addClass(cls);
-                cell.attr('title', message);
+                var wrapper = cell.find('div.mmg-cellWrapper');
+                if (wrapper.length==0){
+                    cell.html('<div class="mmg-CellWrapper">' + cell.html() + '</div>');
+                    wrapper = cell.find('div.mmg-CellWrapper');
+                }
+                wrapper.append(item);
             }
             
             /*
@@ -1686,10 +1699,6 @@
                 }
                 node = $(node);
                 var $self = this;
-                var cell = $(node.children("td")[this._getColumnIndex(this.opts.treeColumn)]);
-                var target = cell.find(this.opts.fieldTarget);
-                var a = cell.find('a.expander');
-                
                 if(direction>0){
                     $(node).attr('level', this._level(node)+1);
                 }
