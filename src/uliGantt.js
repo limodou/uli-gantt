@@ -99,7 +99,15 @@
         //增加对dock, undock事件的处理
         element.on('resize', function(e){
             that.gantt_visible = that.gantt_panel.width() > 0;
+
+            if (that.gantt_visible && that.gantt_opts.ganttDrawAuto)
+                setTimeout(function(){
+                    if (!that.gantt_drawn && that.gantt_visible){
+                        that.redrawGantt();
+                    }
+                }, 100);
         });
+
 
         //init
         this.initTreeGrid();
@@ -139,6 +147,7 @@
             this.grid_opts.autoLoad = false;
             var mmgrid = this.grid.mmGrid(this.grid_opts);
             this.grid_opts.autoLoad = old_autoLoad;
+            this.gantt_drawn = false;
             
             var events = ['added', 'updated', 'deleted', 'indented', 
                 'unindented', 'upped', 'collapsed', 'expanded',
@@ -345,6 +354,9 @@
                 .remove();
         }
         , redrawGantt: function(scale){
+            if (this.gantt_drawing) return;
+            this.gantt_drawing = true;
+
             var oldStartDate = this.startDate;
             var oldEndDate = this.endDate;
             var top = this.gantt.parent().scrollTop();
@@ -374,6 +386,9 @@
             this.gantt.parent().scrollTop(top);
             this.gantt.parent().scrollLeft(left);
             this.grid.parent().scrollTop(top);
+
+            this.gantt_drawn = true;
+            this.gantt_drawing = false;
             
         }
         , drawGantt: function(data){

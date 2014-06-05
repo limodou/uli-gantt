@@ -222,7 +222,7 @@
                 $(self).html('');
 
                 /* Create the form object. */
-                var form = $('<form />');
+                var form = $('<form class="jq-editable"/>');
                 
                 /* Apply css or style or both. */
                 if (settings.cssclass) {

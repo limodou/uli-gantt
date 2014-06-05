@@ -27,11 +27,11 @@
             parentField: '_parent',  //用来在数据中标识父结点的字段名
             bind: false,        //是否启用数据绑定功能，如果启动则在数据发生变化时会主动调用处理函数
             bindHandler: null,  //数据绑定处理函数，如果bind为true，此值为空，则使用缺省处理函数
+            bindExtraData: null, //返回与编辑处理相关的额外数据function(action, result, data, el){}
             readonly: true,  //如果是只读，则不能进行add, remove, indent, unindent等编辑操作
             orderingField: 'ordering',   //ordering用来保持每条的顺序号
             showMessage: null,   //显示消息的函数,
             cssRender:null,      //返回tr对应的css回调函数
-            
             showIcon: false,    //树列显示图标
             iconIndent: 16,     //图标的宽度
             expandMethod: 'GET',//自动展开子结点ajax请求方式
@@ -412,9 +412,17 @@
                         }
                     }
                 }
-                
+
+                var d, x;
                 for(var i=0, _len=nodes.length; i<_len; i++){
-                    para.push(this.getKey(nodes[i]));
+                    x = this.row(nodes[i]);
+                    d = {}
+                    d[this.opts.idField] = x[this.opts.idField]
+                    if (this.opts.bindExtraData){
+                        this.opts.bindExtraData('remove', d, x, nodes[i]);
+                    }
+
+                    para.push(d);
                 }
                 
                 function f(d, is_direct){
@@ -555,18 +563,21 @@
             , _bind_handler: function(action, data, callback){
                 var $self = this;
                 var item;
+                var para;
                 if(this._initing) return;
                 if (this.opts.bind){
                     if($.isFunction(this.opts.bindHandler)){
                         this.opts.bindHandler(action, data, callback);
                         return ;
                     }else if(typeof(this.opts.bindHandler) == 'string'){
-                        data.action = action;
+                        para = {};
+                        para.action = action;
+                        para.data = JSON.stringify(data)
                         $.ajaxQueue({
                             url:this.opts.bindHandler,
                             type:'POST',
                             dataType:'json',
-                            data:{action:action, data:JSON.stringify(data)}
+                            data:para
                         })
                         .done(function(r){
                             if(r.success){
@@ -614,6 +625,9 @@
                         ordering ++;
                         d[this.opts.idField] = data[this.opts.idField];
                         d[this.opts.orderingField] = ordering;
+                        if (this.opts.bindExtraData){
+                            this.opts.bindExtraData('save_ordering', d, data, nodes[i]);
+                        }
                         data[this.opts.orderingField] = ordering;
                         para.push(d);
                     }else{
@@ -1332,21 +1346,27 @@
                     if(e.isDefaultPrevented()) return;
                 
                     var d = {}
+                    var d_row = this.row(n);
                     d[this.opts.idField] = this.getKey(node);
-                    d[this.opts.orderingField] = this.row(n)[this.opts.orderingField];
+                    d[this.opts.orderingField] = d_row[this.opts.orderingField];
+                    if (this.opts.bindExtraData){
+                        this.opts.bindExtraData('up', d, data, node);
+                    }
                     para.push(d);
-                    
+
                     d = {}
                     d[this.opts.idField] = this.getKey(n);
                     d[this.opts.orderingField] = data[this.opts.orderingField];
+                    //绑定的数据是按两个结点交换来处理的
+                    if (this.opts.bindExtraData){
+                        this.opts.bindExtraData('up', d, d_row, n);
+                    }
                     para.push(d);
-                    
+
                     function f(){
                         for(i=0; i<children.length; i++){
                             n.before(children[i]);
                         }
-                        $self.mergeData(para);
-                        
                         $self._trigger(node, 'upped', data);
                     }
                     
@@ -1396,6 +1416,9 @@
                             data[this.opts.orderingField] = d[this.opts.orderingField];
                         }
                     }
+                    if (this.opts.bindExtraData){
+                        this.opts.bindExtraData('indent', d, data, node);
+                    }
                     //如果无子结点，ordering值可以不变
                     para.push(d);
                     
@@ -1406,6 +1429,9 @@
                         d = {};
                         d[this.opts.idField] = x[this.opts.idField];
                         d['level'] = this._level(children[i])+1;
+                        if (this.opts.bindExtraData){
+                            this.opts.bindExtraData('indent', d, x, children[i]);
+                        }
                         para.push(d);
                     }
                     
@@ -1467,6 +1493,9 @@
                         data[this.opts.orderingField] = ordering;
                     }else
                         ordering = data[this.opts.orderingField];
+                    if (this.opts.bindExtraData){
+                        this.opts.bindExtraData('unindent', d, data, node);
+                    }
                     para.push(d);
                     
                     //将当前结点下的同级结点的ordering按node的ordering向后移动
@@ -1481,6 +1510,9 @@
                             ordering ++;
                             x[this.opts.orderingField] = ordering;
                             d[this.opts.orderingField] = ordering;
+                            if (this.opts.bindExtraData){
+                                this.opts.bindExtraData('unindent', d, x, nexts[i]);
+                            }
                             para.push(d);
                         }
                     }
@@ -1491,13 +1523,21 @@
                         d = {};
                         d[this.opts.idField] = x[this.opts.idField];
                         d['level'] = Math.max(0, this._level(children[i])-1);
+                        if (this.opts.bindExtraData){
+                            this.opts.bindExtraData('unindent', d, x, children[i]);
+                        }
                         para.push(d);
                     }
                     var nextNode = next;
+                    var y;
                     while(nextNode){
                         d = {}
-                        d[this.opts.idField] = this.row(nextNode)[this.opts.idField];
+                        y = this.row(nextNode);
+                        d[this.opts.idField] = y[this.opts.idField];
                         d[this.opts.parentField] = this.getKey(node);
+                        if (this.opts.bindExtraData){
+                            this.opts.bindExtraData('unindent', d, y, nextNode);
+                        }
                         para.push(d);
                         nextNode = this.getNext(nextNode, true);
                     }
@@ -1680,8 +1720,8 @@
                 var item = $('<span class="mmg-notation '+cls+'" title="'+message+'"></span>');
                 var wrapper = cell.find('div.mmg-cellWrapper');
                 if (wrapper.length==0){
-                    cell.html('<div class="mmg-CellWrapper">' + cell.html() + '</div>');
-                    wrapper = cell.find('div.mmg-CellWrapper');
+                    cell.html('<div class="mmg-cellWrapper">' + cell.html() + '</div>');
+                    wrapper = cell.find('div.mmg-cellWrapper');
                 }
                 wrapper.append(item);
             }
@@ -1765,6 +1805,21 @@
                     }
                 });
             }
+
+            , onSelect: function(el){
+                var forceSingle = true;
+                if(this.opts.multiSelect)
+                    if (this.opts.multiSelectKey)
+                        forceSingle = true;
+                    else
+                        foceSingle = false;
+                if(!el.parent().hasClass('selected')){
+                    this.select(el.parent().index(), null, forceSingle);
+                }else{
+                    this.deselect(el.parent().index(), null, forceSingle);
+                }
+            }
+
 
             /*
              * frozen 冻结事件

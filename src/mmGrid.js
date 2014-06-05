@@ -565,34 +565,31 @@
                 
                 //检查是否已经创建了editor,check form element
                 if ($(this).find('form').size()>0){
-                    e.preventDefault();
+                    //e.preventDefault();
                     return;
                 }
+
                 var $this = $(this);
+                //増加对单元格编辑的支持
+                if (opts.editable){
+                    var leafCols = that._leafCols();
+                    var index = $this.index();
+                    var col = leafCols[index];
+                    if (col.editor){
+                        that._create_editor($this, col);
+//                            $this.data('editing') = true;
+                        return;
+                    }
+                }
+
                 var event = jQuery.Event("cellSelected");
                 event.target = e.target;
                 that.$body.triggerHandler(event, [$.data($this.parent()[0], 'item'), $this.parent().index(), $this.index()]);
-
                 if(event.isPropagationStopped()){
                     return;
                 }
-                if(!$this.parent().hasClass('selected')){
-                    that.select($this.parent().index());
-                    
-                    //増加对单元格编辑的支持
-                    if (opts.editable){
-                        var leafCols = that._leafCols();
-                        var index = $this.index();
-                        var col = leafCols[index];
-                        if (col.editor){
-                            that._create_editor($this, col);
-//                            $this.data('editing') = true;
-                        }
-                    }
-                }else{
-                    that.deselect($this.parent().index());
-                }
-                
+
+                that.onSelect($this);
             });
 
             this._on_click_checkbox();
@@ -618,6 +615,14 @@
             };
 
 
+        }
+
+        , onSelect: function(el){
+            if(!el.parent().hasClass('selected')){
+                this.select(el.parent().index());
+            }else{
+                this.deselect(el.parent().index());
+            }
         }
         , _on_click_checkbox: function(){
             var $body = this.$body;
@@ -688,16 +693,25 @@
                 }
                 return editor_data;
             }
-            
-            var node = el.find('div div');
+
+            var node = el.find('div.mmg-cellText, div.mmg-cellWrapper');
+            if (node.length == 0){
+                el.html('<div class="mmg-cellText">'+el.html()+'</div>');
+                node = el.find('div.mmg-cellText');
+            }
             node.editable('destroy');
+
+            var submit_data = {id:data.id, col_name:col.name};
+            if ($.isFunction(that.opts.cellSubmitData)){
+                $.extend(submit_data, that.opts.cellSubmitData(data));
+            }
             node.editable(this.opts.cellEditUrl,
                 {
                 id:'key',
                 onblur:'submit',
                 type:type,
                 data:get_data,
-                submitdata:{id:data.id, col_name:col.name},
+                submitdata:submit_data,
                 onedit:col.onedit || that.opts.onCellEdit,
                 name:col.name,
                 callback:callback,
@@ -1290,11 +1304,14 @@
             $head.find('th .checkAll').prop('checked','');
 
         }
-        , selectedRows: function(){
+        , selectedRows: function(filter){
             var $body = this.$body;
             var selected = [];
             $.each($body.find('tr.selected'), function(index ,item){
-                selected.push($.data(this,'item'));
+                if ($.isFunction(filter))
+                    selected.push(filter($.data(this,'item')));
+                else
+                    selected.push($.data(this,'item'));
             });
             return selected;
         }
@@ -1511,6 +1528,7 @@
         , editable: false //是否可以编辑
         , onCellEdit: function(){return true;}
         , cellEditUrl: function(){}
+        , cellSubmitData: null //单元格编辑时需要提交的数据，如果是函数则格式为  function(text, settings)
     };
 //  event : loadSuccess(e,data), loadError(e, data), cellSelected(e, item, rowIndex, colIndex)
 //          rowInserted(e,item, rowIndex), rowUpdated(e, oldItem, newItem, rowIndex), rowRemoved(e,item, rowIndex)

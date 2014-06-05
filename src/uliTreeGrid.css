@@ -61,6 +61,10 @@
   position:relative;
 }
 
+.mmGrid .mmg-cellText {
+  position:relative;
+}
+
 .mmGrid .mmg-bodyWrapper .mmg-body td.error {
   background-color: #b94a48;
 }
